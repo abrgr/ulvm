@@ -1,4 +1,5 @@
 (ns ulvm.core
+  "Core types used in defining a ulvm system"
   (:require [clojure.spec :as s]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8,9 +9,21 @@
 
 (defn defflow
   "Define a flow"
-  [name description args flow]
-  ({name (with-meta flow {::args args
-                          ::description description})}))
+  ([name args flow]
+    (defflow name (str name) args flow))
+  ([name description args flow]
+    {name (with-meta flow {::args args,
+                            ::description description})}))
+
+(s/fdef ::defflow
+  :args (s/cat
+    :name keyword?
+    :description (s/? string?)
+    :args (s/spec (s/* keyword?))
+    :body ::flow?)
+  :ret (s/map-of keyword? ::flow?)
+  :fn (fn [{args :args ret :ret}]
+    (= ((:name args) ret) (:body args))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Scope Stuff
@@ -18,12 +31,24 @@
 (s/def ::scope? 
   (s/keys :req [::module] :opt [::modules ::init]))
 
-(s/def ::init map?) ; TODO map from names to flows
+(s/def ::init
+  (s/map-of symbol? ::flow?))
 
 (defn defscope
   "Define a scope, which represents a build artifact, often serving as a container for code (e.g. a C++ or a NodeJS process) or an entity of the infrastructure (e.g. a cluster of machines)"
-  [name description scope]
-  ({name (with-meta scope {::description description})}))
+  ([name scope]
+    (defscope name (str name) scope))
+  ([name description scope]
+    {name (with-meta scope {::description description})}))
+
+(s/fdef ::defscope
+  :args (s/cat
+    :name keyword?
+    :description (s/? string?)
+    :scope ::scope?)
+  :ret (s/map-of keyword? ::scope?)
+  :fn (fn [{args :args ret :ret}]
+    (= ((:name args) ret) (:scope args))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Module Stuff
@@ -31,11 +56,11 @@
 (s/def ::module
   (s/keys :req [::loader-name ::module-descriptor]))
 
-(s/def ::loader-name symbol?)
+(s/def ::loader-name keyword?)
 
 (s/def ::module-descriptor map?)
 
-(s/def ::modules (s/+ ::module))
+(s/def ::modules (s/map-of keyword? ::module))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Loader Stuff
@@ -47,7 +72,7 @@
 
 (s/def ::command ::command?)
 
-(s/def ::platform symbol?)
+(s/def ::platform keyword?)
 
 (s/def ::platform-independent-command? 
   (s/alt 
@@ -63,5 +88,16 @@
 
 (defn defloader
   "Defines a new loader, which is responsible for retrieving modules from somewhere"
-  [name description loader]
-  ({name (with-meta loader {::description description})}))
+  ([name loader]
+    (defloader name (str name) loader))
+  ([name description loader]
+    {name (with-meta loader {::description description})}))
+
+(s/fdef ::defloader
+  :args (s/cat
+    :name :keyword?
+    :description (s/? :string?)
+    :loader ::loader)
+  :ret (s/map-of :keyword? ::loader)
+  :fn (fn [{args :args ret :ret}]
+    (= ((:name args) ret) (:loader args))))
