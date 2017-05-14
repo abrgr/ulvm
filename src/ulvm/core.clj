@@ -5,50 +5,64 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Flow Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(s/def ::flow? list?)
+(s/def ::flow? coll?)
 
-(defn defflow
+(defmacro defflow
   "Define a flow"
-  ([name args flow]
-    (defflow name (str name) args flow))
-  ([name description args flow]
-    {name (with-meta flow {::args args,
-                            ::description description})}))
+  [& params]
+  (let [the-args (s/conform (s/cat :name keyword?
+                                   :description (s/? string?)
+                                   :args vector?
+                                   :flow (s/+ #(or true %))) params)
+        name (:name the-args)
+        description (or (:description the-args) (str name))
+        args (:args the-args)
+        flow (:flow the-args)]
+    `(makeflow ~name ~description (quote ~args) (quote ~flow))))
 
-(s/fdef ::defflow
-  :args (s/cat
-    :name keyword?
-    :description (s/? string?)
-    :args (s/spec (s/* keyword?))
-    :body ::flow?)
-  :ret (s/map-of keyword? ::flow?)
-  :fn (fn [{args :args ret :ret}]
-    (= ((:name args) ret) (:body args))))
+(defn makeflow
+  [name description args flow]
+  {name (with-meta flow {::args args,
+                         ::description description})})
+
+(s/fdef makeflow
+        :args (s/cat
+               :name keyword?
+               :description (s/? string?)
+               :args (s/spec (s/* keyword?))
+               :body ::flow?)
+        :ret (s/map-of keyword? ::flow?)
+        :fn (fn [{args :args ret :ret}]
+              (= ((:name args) ret) (:body args))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Scope Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(s/def ::scope? 
+(s/def ::scope?
   (s/keys :req [::module] :opt [::modules ::init]))
 
 (s/def ::init
-  (s/map-of symbol? ::flow?))
+  (s/map-of keyword? ::flow?))
 
-(defn defscope
+(defmacro defscope
   "Define a scope, which represents a build artifact, often serving as a container for code (e.g. a C++ or a NodeJS process) or an entity of the infrastructure (e.g. a cluster of machines)"
   ([name scope]
-    (defscope name (str name) scope))
+   `(makescope ~name (str ~name) ~scope))
   ([name description scope]
-    {name (with-meta scope {::description description})}))
+   `(makescope ~name ~description (quote ~scope))))
 
-(s/fdef ::defscope
-  :args (s/cat
-    :name keyword?
-    :description (s/? string?)
-    :scope ::scope?)
-  :ret (s/map-of keyword? ::scope?)
-  :fn (fn [{args :args ret :ret}]
-    (= ((:name args) ret) (:scope args))))
+(defn makescope
+  [name description scope]
+  {name (with-meta scope {::description description})})
+
+(s/fdef makescope
+        :args (s/cat
+               :name keyword?
+               :description (s/? string?)
+               :scope ::scope?)
+        :ret (s/map-of keyword? ::scope?)
+        :fn (fn [{args :args ret :ret}]
+              (= ((:name args) ret) (:scope args))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Module Stuff
@@ -74,10 +88,10 @@
 
 (s/def ::platform keyword?)
 
-(s/def ::platform-independent-command? 
-  (s/alt 
-    :command-for-all-platforms ::command?
-    :platform-dependent-commands (s/+ ::platform-dependent-command?)))
+(s/def ::platform-independent-command?
+  (s/alt
+   :command-for-all-platforms ::command?
+   :platform-dependent-commands (s/+ ::platform-dependent-command?)))
 
 (s/def ::platform-dependent-command?
   (s/keys :req [::platform ::command]))
@@ -86,18 +100,22 @@
 (s/def ::write-deps-command ::platform-independent-command?)
 (s/def ::install-loader-command ::platform-independent-command?)
 
-(defn defloader
+(defmacro defloader
   "Defines a new loader, which is responsible for retrieving modules from somewhere"
   ([name loader]
-    (defloader name (str name) loader))
+   `(makeloader ~name (str ~name) ~loader))
   ([name description loader]
-    {name (with-meta loader {::description description})}))
+   `(makeloader ~name ~description (quote ~loader))))
 
-(s/fdef ::defloader
-  :args (s/cat
-    :name :keyword?
-    :description (s/? :string?)
-    :loader ::loader)
-  :ret (s/map-of :keyword? ::loader)
-  :fn (fn [{args :args ret :ret}]
-    (= ((:name args) ret) (:loader args))))
+(defn makeloader
+  [name description loader]
+  {name (with-meta loader {::description description})})
+
+(s/fdef makeloader
+        :args (s/cat
+               :name keyword?
+               :description string?
+               :loader ::loader)
+        :ret (s/map-of keyword? ::loader)
+        :fn (fn [{args :args ret :ret}]
+              (= ((:name args) ret) (:loader args))))
