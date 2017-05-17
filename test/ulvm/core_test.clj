@@ -20,7 +20,7 @@
                                  :ulvm.core/module-descriptor {:name "my-adder"}}
                          :db-saver {:ulvm.core/loader-name :npm
                                     :ulvm.core/module-descriptor {:name "my-db-saver"}}}
-     :ulvm.core/init {:my-adder ((adder 42))}})
+     :ulvm.core/init ((adder {:v1 42} :as my-adder))})
 
   (ulvm/defflow :simple []
     ; this flow's result has g as its error value and c as its default return value
@@ -43,8 +43,8 @@
     ; invoke module A in scope-1 with no args, result is named 'a
     ((:A scope-1) {} :as a)
     ((:match-result scope-1) {:*default* :result-a (((:B scope-1) {:the-val result-a} :as v1)
-                                                    ((:C scope-1) {:val-1 result-a, :val-2 v1} :as :c))
-                              :*err* :err-a (((:log-err scope-1) {:err err-a}) :as :g)}))
+                                                    ((:C scope-1) {:val-1 result-a, :val-2 v1} :as c))
+                              :*err* :err-a (((:log-err scope-1) {:err err-a}) :as g)}))
 
   (ulvm/defflow :err-recovery []
     ; this flow's result has c as its default return value

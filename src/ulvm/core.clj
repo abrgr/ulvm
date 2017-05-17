@@ -5,7 +5,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Flow Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(s/def ::flow? coll?)
+(s/def ::flow-invocation-module?
+  (s/alt
+   :scope-module (s/spec (s/cat :module-name keyword?
+                                :scope symbol?))
+   :local-module symbol?))
+
+(s/def ::flow-invocations?
+  (s/+
+   (s/spec
+    (s/cat :invocation-module ::flow-invocation-module?
+           :args (s/? map?)
+           :name (s/? (s/cat :as #{:as}
+                             :name symbol?))))))
+
+(s/def ::flow?
+  (s/spec
+   (s/cat :output-descriptor (s/map-of keyword? symbol?)
+          :invocations ::flow-invocations?)))
 
 (defmacro defflow
   "Define a flow"
@@ -41,8 +58,7 @@
 (s/def ::scope?
   (s/keys :req [::module] :opt [::modules ::init]))
 
-(s/def ::init
-  (s/map-of keyword? ::flow?))
+(s/def ::init ::flow-invocations?)
 
 (defmacro defscope
   "Define a scope, which represents a build artifact, often serving as a container for code (e.g. a C++ or a NodeJS process) or an entity of the infrastructure (e.g. a cluster of machines)"
