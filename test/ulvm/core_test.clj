@@ -5,20 +5,20 @@
   (:use     [clojure.test :only [deftest]]))
 
 (defn examples []
-  (ulvm/defloader :npm
-    "Description of npm loader"
-    {:ulvm.core/install-deps-command (npm install)
-     :ulvm.core/write-deps-command (npm install --save %&)
-     :ulvm.core/install-loader-command (npm install)})
+  (ulvm/defloader :mvn
+    "Description of mvn loader"
+    {:ulvm.core/builtin-loader-name :docker-hub
+     :ulvm.core/module-descriptor {:name "mvn"
+                                   :version "1.0"}})
 
   (ulvm/defscope :my-scope
     "description of scope"
     {:ulvm.core/module
      {:ulvm.core/loader-name :npm
       :ulvm.core/module-descriptor {:name "my-module"}}
-     :ulvm.core/modules {:adder {:ulvm.core/loader-name :npm
+     :ulvm.core/modules {:adder {:ulvm.core/loader-name :mvn
                                  :ulvm.core/module-descriptor {:name "my-adder"}}
-                         :db-saver {:ulvm.core/loader-name :npm
+                         :db-saver {:ulvm.core/loader-name :mvn
                                     :ulvm.core/module-descriptor {:name "my-db-saver"}}}
      :ulvm.core/init ((adder {:v1 42} :as my-adder))})
 

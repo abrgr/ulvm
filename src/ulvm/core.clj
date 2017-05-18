@@ -56,7 +56,9 @@
 ; Scope Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::scope?
-  (s/keys :req [::module] :opt [::modules ::init]))
+  (s/keys :req [::module] :opt [::modules ::init ::config]))
+
+(s/def ::config map?)
 
 (s/def ::init ::flow-invocations?)
 
@@ -84,9 +86,14 @@
 ; Module Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::module
-  (s/keys :req [::loader-name ::module-descriptor]))
+  (s/keys
+   :req [(or ::loader-name ::builtin-loader-name)
+         ::module-descriptor]
+   :opt [::config]))
 
 (s/def ::loader-name keyword?)
+
+(s/def ::builtin-loader-name #{:docker-hub :npm})
 
 (s/def ::module-descriptor map?)
 
@@ -95,27 +102,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Loader Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(s/def ::loader
-  (s/keys :req [::install-deps-command ::write-deps-command ::install-loader-command]))
-
-(s/def ::command? (s/+ symbol?))
-
-(s/def ::command ::command?)
-
-(s/def ::platform keyword?)
-
-(s/def ::platform-independent-command?
-  (s/alt
-   :command-for-all-platforms ::command?
-   :platform-dependent-commands (s/+ ::platform-dependent-command?)))
-
-(s/def ::platform-dependent-command?
-  (s/keys :req [::platform ::command]))
-
-(s/def ::install-deps-command ::platform-independent-command?)
-(s/def ::write-deps-command ::platform-independent-command?)
-(s/def ::install-loader-command ::platform-independent-command?)
-
 (defmacro defloader
   "Defines a new loader, which is responsible for retrieving modules from somewhere"
   ([name loader]
@@ -131,7 +117,7 @@
         :args (s/cat
                :name keyword?
                :description string?
-               :loader ::loader)
-        :ret (s/map-of keyword? ::loader)
+               :loader ::module)
+        :ret (s/map-of keyword? ::module)
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:loader args))))
