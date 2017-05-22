@@ -39,7 +39,8 @@
 
 (defn makeflow
   [name description args flow]
-  {name (with-meta flow {::args args,
+  {name (with-meta flow {::type ::flow
+                         ::args args,
                          ::description description})})
 
 (s/fdef makeflow
@@ -71,7 +72,8 @@
 
 (defn makescope
   [name description scope]
-  {name (with-meta scope {::description description})})
+  {name (with-meta scope {::type ::scope
+                          ::description description})})
 
 (s/fdef makescope
         :args (s/cat
@@ -111,7 +113,8 @@
 
 (defn makeloader
   [name description loader]
-  {name (with-meta loader {::description description})})
+  {name (with-meta loader {::type ::loader
+                           ::description description})})
 
 (s/fdef makeloader
         :args (s/cat
