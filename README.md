@@ -48,7 +48,7 @@ ULVM is untyped in the traditional sense but...  ULVM exposes an interface for m
 
 Scopes are templates for scope instances, which may contain state.  A scope instance could be a process, a machine, a docker container, or even a datacenter.  All state must be declared in the scope's initializer.
 
-Flows are stateless.  A flow is analogous to a function (and should NOT have any static variables).
+Flows are stateless.  A flow is analogous to a function (WITHOUT any static variables).
 
 # The open compiler
 

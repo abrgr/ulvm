@@ -95,7 +95,7 @@
 
 (s/def ::loader-name keyword?)
 
-(s/def ::builtin-loader-name #{:docker-hub :npm})
+(s/def ::builtin-loader-name #{:ulvm.loaders/docker-hub})
 
 (s/def ::module-descriptor map?)
 
@@ -104,6 +104,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Loader Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(s/def ::loader
+  (s/keys
+   :req [::module]))
+
 (defmacro defloader
   "Defines a new loader, which is responsible for retrieving modules from somewhere"
   ([name loader]
@@ -120,7 +124,7 @@
         :args (s/cat
                :name keyword?
                :description string?
-               :loader ::module)
+               :loader ::loader)
         :ret (s/map-of keyword? ::module)
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:loader args))))

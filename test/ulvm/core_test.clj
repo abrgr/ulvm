@@ -7,9 +7,10 @@
 (defn examples []
   (ulvm/defloader :mvn
     "Description of mvn loader"
-    {:ulvm.core/builtin-loader-name :docker-hub
-     :ulvm.core/module-descriptor {:name "mvn"
-                                   :version "1.0"}})
+    {:ulvm.core/module
+     {:ulvm.core/builtin-loader-name :ulvm.loaders/docker-hub
+      :ulvm.core/module-descriptor {:name "mvn"
+                                    :version "1.0"}}})
 
   (ulvm/defscope :my-scope
     "description of scope"
