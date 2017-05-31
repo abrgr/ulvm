@@ -13,7 +13,7 @@
   (-stop [this] {:l/success true}))
 
 (defmethod l/make-loader :l/docker-hub
-  [loader-name loader-entity env]
+  [_ _ env]
   (BuiltinDockerHubLoader. env))
 
 (defn- to-b64
