@@ -106,7 +106,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::loader
   (s/keys
-   :req [::module]))
+   :req [::runnable-env-loader]))
+
+(s/def ::loaders
+  (s/map-of keyword? ::loader))
 
 (defmacro defloader
   "Defines a new loader, which is responsible for retrieving modules from somewhere"
@@ -128,3 +131,94 @@
         :ret (s/map-of keyword? ::module)
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:loader args))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Runnable Environment Stuff
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(s/def ::runner-name keyword?)
+
+(s/def ::builtin-runner-name
+  #{:ulvm.runners/docker-container})
+
+(s/def ::runner-descriptor map?)
+
+(s/def ::runner
+  (s/keys
+   :req [(or ::builtin-runner-name ::runner-name)
+         ::runner-descriptor]))
+
+(s/def ::runnable-scope
+  (s/keys
+   :req [::module ::runner]))
+
+(s/def ::runnable-scopes
+  (s/map-of keyword? ::runnable-scope))
+
+(s/def ::ideal-flows (s/coll-of keyword?))
+
+(s/def ::exported-flow
+  (s/keys
+   :req [::runner ::ideal-flows]))
+
+(s/def ::exported-flows
+  (s/map-of keyword? ::exported-flow))
+
+(s/def ::runnable-env
+  (s/keys
+   :req [::ns ::exported-flows]
+   :opt [::runnable-scopes]))
+
+(defmacro defrunnableenv
+  "Defines a new runnable environment"
+  ([name runnable-env]
+   `(makerunnableenv ~name (str ~name) ~runnable-env))
+  ([name description runnable-env]
+   `(makerunnableenv ~name ~description (quote ~runnable-env))))
+
+(defn makerunnableenv
+  [name description runnable-env]
+  {name (with-meta runnable-env {::type ::runnable-env
+                                 ::description description})})
+
+(s/fdef makerunnableenv
+        :args (s/cat
+               :name keyword?
+               :description string?
+               :runnable-env ::runnable-env)
+        :ret (s/map-of keyword? ::runnable-env)
+        :fn (fn [{args :args ret :ret}]
+              (= ((:name args) ret) (:runnable-env args))))
+
+(s/def ::runnable-env-descriptor map?)
+
+(s/def ::runnable-env-loader
+  (s/keys
+   :req [(or ::builtin-runnable-env-loader-name
+             ::runnable-env-loader-name)
+         ::runnable-env-descriptor]))
+
+(s/def ::runner-def
+  (s/keys
+   :req [::runnable-env-loader
+         (or ::flow-name ::ideal-flow)]))
+
+(defmacro defrunner
+  "Defines a new runner"
+  ([name runner]
+   `(makerunner ~name (str ~name) ~runner))
+  ([name description runner]
+   `(makerunner ~name ~description (quote ~runner))))
+
+(defn makerunner
+  [name description runner]
+  {name (with-meta runner {::type ::runner
+                           ::description description})})
+
+(s/fdef makerunner
+        :args (s/cat
+               :name keyword?
+               :description string?
+               :runner ::runner-def)
+        :ret (s/map-of keyword? ::runner)
+        :fn (fn [{args :args ret :ret}]
+              (= ((:name args) ret) (:runner args))))
