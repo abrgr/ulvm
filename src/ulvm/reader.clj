@@ -1,4 +1,4 @@
-(ns ulvm.reader
+(ns ^{:author "Adam Berger"} ulvm.reader
   "ULVM Reader"
   (:require [ulvm.core]
             [clojure.java.io :as io]
@@ -31,10 +31,10 @@
   "Combines maps of ulvm scopes, loaders, and flows"
   [maps]
   (apply merge-with
-         (fn [old new] (flatten [old new]))
+         (fn [old new] (conj old new))
          maps))
 
-(defn- eval-ulvm-seq
+(defn eval-ulvm-seq
   "Evaluates a seq of ulvm forms and returns a map of scopes, loaders, and flows."
   [forms]
   (combine-ulvm-maps (map ulvm-entity forms)))

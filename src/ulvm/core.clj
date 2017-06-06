@@ -1,6 +1,16 @@
-(ns ulvm.core
+(ns ^{:author "Adam Berger"} ulvm.core
   "Core types used in defining a ulvm system"
   (:require [clojure.spec :as s]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Type Stuff
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(s/def ::type
+  #{::flows
+    ::scopes
+    ::mod-loaders
+    ::runnable-envs
+    ::runners})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Flow Stuff
@@ -24,6 +34,9 @@
    (s/cat :output-descriptor (s/map-of keyword? symbol?)
           :invocations ::flow-invocations?)))
 
+(s/def ::flows
+  (s/map-of keyword? ::flow?))
+
 (defmacro defflow
   "Define a flow"
   [& params]
@@ -39,8 +52,8 @@
 
 (defn makeflow
   [name description args flow]
-  {name (with-meta flow {::type ::flow
-                         ::args args,
+  {name (with-meta flow {::type ::flows
+                         ::args args
                          ::description description})})
 
 (s/fdef makeflow
@@ -49,7 +62,7 @@
                :description (s/? string?)
                :args (s/spec (s/* keyword?))
                :body ::flow?)
-        :ret (s/map-of keyword? ::flow?)
+        :ret ::flows
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:body args))))
 
@@ -58,6 +71,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::scope?
   (s/keys :req [::module] :opt [::modules ::init ::config]))
+
+(s/def ::scopes
+  (s/map-of keyword? ::scope?))
 
 (s/def ::config map?)
 
@@ -72,7 +88,7 @@
 
 (defn makescope
   [name description scope]
-  {name (with-meta scope {::type ::scope
+  {name (with-meta scope {::type ::scopes
                           ::description description})})
 
 (s/fdef makescope
@@ -80,7 +96,7 @@
                :name keyword?
                :description (s/? string?)
                :scope ::scope?)
-        :ret (s/map-of keyword? ::scope?)
+        :ret ::scopes
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:scope args))))
 
@@ -89,46 +105,46 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::module
   (s/keys
-   :req [(or ::loader-name ::builtin-loader-name)
-         ::module-descriptor]
+   :req [(or ::mod-loader-name ::builtin-mod-loader-name)
+         ::mod-descriptor]
    :opt [::config]))
 
-(s/def ::loader-name keyword?)
+(s/def ::mod-loader-name keyword?)
 
-(s/def ::builtin-loader-name #{:ulvm.loaders/docker-hub})
+(s/def ::builtin-mod-loader-name #{:ulvm.mod-loaders/docker-hub})
 
-(s/def ::module-descriptor map?)
+(s/def ::mod-descriptor map?)
 
 (s/def ::modules (s/map-of keyword? ::module))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Loader Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(s/def ::loader
+(s/def ::mod-loader
   (s/keys
    :req [::runnable-env-loader]))
 
-(s/def ::loaders
-  (s/map-of keyword? ::loader))
+(s/def ::mod-loaders
+  (s/map-of keyword? ::mod-loader))
 
-(defmacro defloader
+(defmacro defmodloader
   "Defines a new loader, which is responsible for retrieving modules from somewhere"
   ([name loader]
-   `(makeloader ~name (str ~name) ~loader))
+   `(makemodloader ~name (str ~name) ~loader))
   ([name description loader]
-   `(makeloader ~name ~description (quote ~loader))))
+   `(makemodloader ~name ~description (quote ~loader))))
 
-(defn makeloader
+(defn makemodloader
   [name description loader]
-  {name (with-meta loader {::type ::loader
+  {name (with-meta loader {::type ::mod-loaders
                            ::description description})})
 
-(s/fdef makeloader
+(s/fdef makemodloader
         :args (s/cat
                :name keyword?
                :description string?
-               :loader ::loader)
-        :ret (s/map-of keyword? ::module)
+               :loader ::mod-loader)
+        :ret (s/map-of keyword? ::mod-loader)
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:loader args))))
 
@@ -146,6 +162,9 @@
   (s/keys
    :req [(or ::builtin-runner-name ::runner-name)
          ::runner-descriptor]))
+
+(s/def ::runners
+  (s/map-of keyword? ::runner))
 
 (s/def ::runnable-scope
   (s/keys
@@ -168,6 +187,9 @@
    :req [::ns ::exported-flows]
    :opt [::runnable-scopes]))
 
+(s/def ::runnable-envs
+  (s/map-of keyword? ::runnable-env))
+
 (defmacro defrunnableenv
   "Defines a new runnable environment"
   ([name runnable-env]
@@ -177,7 +199,7 @@
 
 (defn makerunnableenv
   [name description runnable-env]
-  {name (with-meta runnable-env {::type ::runnable-env
+  {name (with-meta runnable-env {::type ::runnable-envs
                                  ::description description})})
 
 (s/fdef makerunnableenv
@@ -185,7 +207,7 @@
                :name keyword?
                :description string?
                :runnable-env ::runnable-env)
-        :ret (s/map-of keyword? ::runnable-env)
+        :ret ::runnable-envs
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:runnable-env args))))
 
@@ -196,6 +218,8 @@
    :req [(or ::builtin-runnable-env-loader-name
              ::runnable-env-loader-name)
          ::runnable-env-descriptor]))
+
+; TODO: define defrunnableenvloader
 
 (s/def ::runner-def
   (s/keys
@@ -211,7 +235,7 @@
 
 (defn makerunner
   [name description runner]
-  {name (with-meta runner {::type ::runner
+  {name (with-meta runner {::type ::runners
                            ::description description})})
 
 (s/fdef makerunner
@@ -219,6 +243,6 @@
                :name keyword?
                :description string?
                :runner ::runner-def)
-        :ret (s/map-of keyword? ::runner)
+        :ret ::runners
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:runner args))))

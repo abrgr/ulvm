@@ -1,11 +1,11 @@
-(ns ulvm.core-spec-test
+(ns ^{:author "Adam Berger"} ulvm.core-spec-test
   "Spec tests for ulvm.core"
   (:require [clojure.spec.test :as st]
             [ulvm.core :as ulvm])
   (:use     [clojure.test :only [deftest]]))
 
 (defn flowfile-examples []
-  (ulvm/defloader :mvn
+  (ulvm/defmodloader :mvn
     "Description of mvn loader"
     {:ulvm.core/runnable-env-loader
      {:ulvm.core/builtin-runnable-env-loader-name :ulvm.runnable-env-loaders/http
@@ -14,12 +14,12 @@
   (ulvm/defscope :my-scope
     "Description of scope"
     {:ulvm.core/module
-     {:ulvm.core/loader-name :npm
-      :ulvm.core/module-descriptor {:name "my-module"}}
-     :ulvm.core/modules {:adder {:ulvm.core/loader-name :mvn
-                                 :ulvm.core/module-descriptor {:name "my-adder"}}
-                         :db-saver {:ulvm.core/loader-name :mvn
-                                    :ulvm.core/module-descriptor {:name "my-db-saver"}}}
+     {:ulvm.core/mod-loader-name :npm
+      :ulvm.core/mod-descriptor {:name "my-module"}}
+     :ulvm.core/modules {:adder {:ulvm.core/mod-loader-name :mvn
+                                 :ulvm.core/mod-descriptor {:name "my-adder"}}
+                         :db-saver {:ulvm.core/mod-loader-name :mvn
+                                    :ulvm.core/mod-descriptor {:name "my-db-saver"}}}
      :ulvm.core/init ((adder {:v1 42} :as my-adder))})
 
   (ulvm/defflow :simple []
@@ -56,8 +56,6 @@
                                       ((:B scope-1) {} :as a))})))
 
 (defn runnable-env-examples []
-  ; TODO: think through runner chaining some more
-  ; TODO: loaders should be runnable-envs, implying that they should be loaded by runnable-env-loaders
   (ulvm.core/defrunner :http-get-runner
     "Sends a get request"
     {:ulvm.core/runnable-env-loader
@@ -71,9 +69,9 @@
      :ulvm.core/runnable-scopes
      {:mvn
       {:ulvm.core/module
-       {:ulvm.core/builtin-loader-name :ulvm.loaders/docker-hub
-        :ulvm.core/module-descriptor {:name "ulvm-mvn"
-                                      :version "3.2"}} ; module adds items to env under joint namespace ({ns}, ulvm.loaders.docker-hub)/{scope-name}/ (e.g. #{org.ulvm.maven ulvm.loaders.docker-hub}/mvn/{docker-image, version, etc})
+       {:ulvm.core/builtin-mod-loader-name :ulvm.mod-loaders/docker-hub
+        :ulvm.core/mod-descriptor {:name "ulvm-mvn"
+                                   :version "3.2"}} ; module adds items to env under joint namespace ({ns}, ulvm.mod-loaders.docker-hub)/{scope-name}/ (e.g. #{org.ulvm.maven ulvm.mod-loaders.docker-hub}/mvn/{docker-image, version, etc})
        :ulvm.core/runner
        {:ulvm.core/builtin-runner-name :ulvm.runners/docker-container
         :ulvm.core/runner-descriptor
@@ -87,8 +85,8 @@
        {:ulvm.core/runner-name :ulvm.runners/http
         :ulvm.core/runner-descriptor {:method "post"
                                       :host (ulvm.core/from-env [#{:org.ulvm.maven :ulvm.runners.docker-container} :mvn :container-ip])
-                                      :body :ulvm.core/module-descriptor}}
-       :ulvm.core/ideal-flows #{:org.ulvm.loader}}}}))
+                                      :body :ulvm.core/mod-descriptor}}
+       :ulvm.core/ideal-flows #{:org.ulvm.mod-loader}}}}))
 
 (deftest flowfile-examples-match-specs
   (st/instrument (st/instrumentable-syms 'ulvm))

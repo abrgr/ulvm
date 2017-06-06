@@ -1,4 +1,4 @@
-(ns ulvm.compiler-test
+(ns ^{:author "Adam Berger"} ulvm.compiler-test
   "ulvm.compiler tests"
   (:require [ulvm.compiler :as c]
             [clojure.java.io :as io]

@@ -1,20 +1,20 @@
-(ns ulvm.loaders.docker-hub-loader
+(ns ^{:author "Adam Berger"} ulvm.mod-loaders.builtin-docker-hub-mod-loader
   "ULVM builtin Docker-Hub loader"
   (:require [org.httpkit.client :as http-kit]
-            [ulvm.loaders :as l])
+            [ulvm.mod-loaders :as l]
+            [ulvm.project :as uprj]
+            [cats.monad.either :as e])
   (:import java.util.Base64))
 
 (declare to-b64 pull-image)
 
-(deftype BuiltinDockerHubLoader [env]
-  l/Loader
-  (-launch [this] {:l/success true})
-  (-load-module [this module-descriptor] (pull-image env module-descriptor))
-  (-stop [this] {:l/success true}))
+(deftype BuiltinDockerHubLoader []
+  uprj/ModLoader
+  (-load-module [this prj module-descriptor] (pull-image prj module-descriptor)))
 
-(defmethod l/make-loader :l/docker-hub
-  [_ _ env]
-  (BuiltinDockerHubLoader. env))
+(defmethod l/make ::l/docker-hub
+  [_ _ _]
+  (e/try-either (BuiltinDockerHubLoader.)))
 
 (defn- to-b64
   "Return string representation of the base64 representation of s or nil if s is nil"
@@ -24,8 +24,8 @@
 
 (defn- pull-image
   "Pull a docker image"
-  [env module-descriptor]
-  (let [scheme-and-host (get env ::docker-host)
+  [prj module-descriptor]
+  (let [scheme-and-host (uprj/get-env prj ::docker-host)
         url (-> (java.net.URI. scheme-and-host)
                 (.resolve "/images/create")
                 (.toString))
@@ -42,6 +42,6 @@
     (http-kit/post url opts
                    (fn [{:keys [status body error]}]
                      (cond
-                       (some? error) {:l/err error}
-                       (not= status 200) {:l/err (str status ": " body)}
-                       :default {:l/success body})))))
+                       (some? error) (e/left {::error error})
+                       (not= status 200) (e/left {::error (str status ": " body)})
+                       :default (e/right body))))))

@@ -1,19 +1,18 @@
-(ulvm.core/defloader :mvn
+(ulvm.core/defmodloader :mvn
   "Description of mvn loader"
-  {:ulvm.core/module
-    {:ulvm.core/builtin-loader-name :ulvm.loaders/docker-hub
-     :ulvm.core/module-descriptor {:name "mvn"
-                                   :version "1.0"}}})
+  {:ulvm.core/runnable-env-loader
+   {:ulvm.core/builtin-runnable-env-loader-name :ulvm.runnable-env-loaders/http
+    :ulvm.core/runnable-env-descriptor {:url "http://github.com/ulvm/contrib/1.2.3/mvn-runnable-env.ulvm"}}})
 
 (ulvm.core/defscope :my-scope
   "description of scope"
   {:ulvm.core/module
-   {:ulvm.core/loader-name :npm
-    :ulvm.core/module-descriptor {:name "my-module"}}
-   :ulvm.core/modules {:adder {:ulvm.core/loader-name :mvn
-                               :ulvm.core/module-descriptor {:name "my-adder"}}
-                       :db-saver {:ulvm.core/loader-name :mvn
-                                  :ulvm.core/module-descriptor {:name "my-db-saver"}}}
+   {:ulvm.core/mod-loader-name :npm
+    :ulvm.core/mod-descriptor {:name "my-module"}}
+   :ulvm.core/modules {:adder {:ulvm.core/mod-loader-name :mvn
+                               :ulvm.core/mod-descriptor {:name "my-adder"}}
+                       :db-saver {:ulvm.core/mod-loader-name :mvn
+                                  :ulvm.core/mod-descriptor {:name "my-db-saver"}}}
    :ulvm.core/init ((adder {:v1 42} :as my-adder))})
 
 (ulvm.core/defflow :simple []
