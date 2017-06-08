@@ -56,6 +56,12 @@
                                       ((:B scope-1) {} :as a))})))
 
 (defn runnable-env-examples []
+  (ulvm.core/defrunnableenvloader :auth-http-re-loader
+    "Defines an http runnable environment loader that uses some special auth scheme"
+    {:ulvm.core/runnable-env-ref
+     {:ulvm.core/builtin-runnable-env-loader-name :ulvm.runnable-env-loaders/http
+      :ulvm.core/runnable-env-descriptor {:url "http://github.com/ulvm/contrib/1.2.3/runnable-env-loaders.ulvm"}}})
+
   (ulvm.core/defrunner :http-get-runner
     "Sends a get request"
     {:ulvm.core/runnable-env-ref

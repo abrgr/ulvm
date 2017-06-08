@@ -219,7 +219,33 @@
              ::runnable-env-loader-name)
          ::runnable-env-descriptor]))
 
-; TODO: define defrunnableenvloader
+(s/def ::runnable-env-loader
+  (s/keys
+   :req [::runnable-env-ref]))
+
+(s/def ::runnable-env-loaders
+  (s/map-of keyword? ::runnable-env-loader))
+
+(defmacro defrunnableenvloader
+  "Defines a new runnable environment loader"
+  ([name runnable-env-loader]
+   `(makerunnableenvloader ~name (str ~name) ~runnable-env-loader))
+  ([name description runnable-env-loader]
+   `(makerunnableenvloader ~name ~description (quote ~runnable-env-loader))))
+
+(defn makerunnableenvloader
+  [name description runnable-env-loader]
+  {name (with-meta runnable-env-loader {::type ::runnable-envs
+                                        ::description description})})
+
+(s/fdef makerunnableenvloader
+        :args (s/cat
+               :name keyword?
+               :description string?
+               :runnable-env-loader ::runnable-env-loader)
+        :ret ::runnable-env-loaders
+        :fn (fn [{args :args ret :ret}]
+              (= ((:name args) ret) (:runnable-env-loader args))))
 
 (s/def ::runner-def
   (s/keys
