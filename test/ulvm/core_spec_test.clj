@@ -7,7 +7,7 @@
 (defn flowfile-examples []
   (ulvm/defmodloader :mvn
     "Description of mvn loader"
-    {:ulvm.core/runnable-env-loader
+    {:ulvm.core/runnable-env-ref
      {:ulvm.core/builtin-runnable-env-loader-name :ulvm.runnable-env-loaders/http
       :ulvm.core/runnable-env-descriptor {:url "http://github.com/ulvm/contrib/1.2.3/mvn-runnable-env.ulvm"}}})
 
@@ -58,7 +58,7 @@
 (defn runnable-env-examples []
   (ulvm.core/defrunner :http-get-runner
     "Sends a get request"
-    {:ulvm.core/runnable-env-loader
+    {:ulvm.core/runnable-env-ref
      {:ulvm.core/builtin-runnable-env-loader-name :ulvm.runnable-env-loaders/http
       :ulvm.core/runnable-env-descriptor {:url "http://github.com/ulvm/contrib/1.2.3/runnable-env-loaders.ulvm"}}
      :ulvm.core/ideal-flow ulvm.core.get-runnable-env})

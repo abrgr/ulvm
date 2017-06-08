@@ -1,6 +1,6 @@
 (ulvm.core/defmodloader :mvn
   "Description of mvn loader"
-  {:ulvm.core/runnable-env-loader
+  {:ulvm.core/runnable-env-ref
    {:ulvm.core/builtin-runnable-env-loader-name :ulvm.runnable-env-loaders/http
     :ulvm.core/runnable-env-descriptor {:url "http://github.com/ulvm/contrib/1.2.3/mvn-runnable-env.ulvm"}}})
 

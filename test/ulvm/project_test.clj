@@ -11,7 +11,7 @@
 (def flowfile-example
   `[(ulvm/defmodloader :mvn
       "Description of mvn loader"
-      {:ulvm.core/runnable-env-loader
+      {:ulvm.core/runnable-env-ref
        {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
         :ulvm.core/runnable-env-descriptor {:path "re-loaders/mvn.ulvm"}}})
 

@@ -21,4 +21,4 @@
 
 (defmethod l/make ::ulvm.re-loaders/project-file
   [prj re-loader-name re-loader-entity]
-  (uprj/set prj ::ucore/runnable-env-loader re-loader-name (BuiltinProjectFileRELoader.)))
+  (uprj/set prj ::ucore/runnable-env-ref re-loader-name (BuiltinProjectFileRELoader.)))

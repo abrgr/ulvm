@@ -27,7 +27,7 @@
 (defn- get-rel-name
   "Runnable env loader name from loader entity"
   [loader-entity]
-  (let [rel (::ucore/runnable-env-loader loader-entity)]
+  (let [rel (::ucore/runnable-env-ref loader-entity)]
     (or (::ucore/builtin-runnable-env-loader-name rel)
         (::ucore/runnable-env-loader-name rel))))
 
@@ -42,7 +42,7 @@
 (defmethod make :default
   [proj loader-name loader-entity]
   (let [rel-name (get-rel-name loader-entity)
-        {:keys [:prj :renv-loader]} (uprj/get proj ::ucore/runnable-env-loader rel-name)
+        {:keys [:prj :renv-loader]} (uprj/get proj ::ucore/runnable-env-ref rel-name)
         re nil]
     ; TODO: actually load the environment
     (uprj/set prj ::ucore/mod-loader loader-name (CustomModLoader. re))))

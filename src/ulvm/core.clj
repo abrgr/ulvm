@@ -122,7 +122,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::mod-loader
   (s/keys
-   :req [::runnable-env-loader]))
+   :req [::runnable-env-ref]))
 
 (s/def ::mod-loaders
   (s/map-of keyword? ::mod-loader))
@@ -213,7 +213,7 @@
 
 (s/def ::runnable-env-descriptor map?)
 
-(s/def ::runnable-env-loader
+(s/def ::runnable-env-ref
   (s/keys
    :req [(or ::builtin-runnable-env-loader-name
              ::runnable-env-loader-name)
@@ -223,7 +223,7 @@
 
 (s/def ::runner-def
   (s/keys
-   :req [::runnable-env-loader
+   :req [::runnable-env-ref
          (or ::flow-name ::ideal-flow)]))
 
 (defmacro defrunner

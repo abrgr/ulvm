@@ -17,11 +17,11 @@
   uprj/REnvLoader
   (-get-runnable-env-rep [this prj desc] (e/right {})))
 
-(defmethod uprj/get ::ucore/runnable-env-loader
+(defmethod uprj/get ::ucore/runnable-env-ref
   [prj _ name]
-  (uprj/get-prj-el prj name make :renv-loaders :renv-loader ::ucore/runnable-env-loader))
+  (uprj/get-prj-el prj name make :renv-loaders :renv-loader ::ucore/runnable-env-ref))
 
-(defmethod uprj/set ::ucore/runnable-env-loader
+(defmethod uprj/set ::ucore/runnable-env-ref
   [prj type name item]
   (uprj/set-prj-el prj type name item))
 
