@@ -33,7 +33,7 @@
 
 (defmethod uprj/get ::ucore/mod-loader
   [prj _ name]
-  (uprj/get-prj-el prj name make :mod-loaders :mod-loader ::ucore/mod-loaders))
+  (uprj/get-prj-el prj name make :mod-loaders ::ucore/mod-loaders))
 
 (defmethod uprj/set ::ucore/mod-loader
   [prj type name item]
@@ -41,11 +41,8 @@
 
 (defmethod make :default
   [proj loader-name loader-entity]
-  (let [rel-name (get-rel-name loader-entity)
-        {:keys [:prj :renv-loader]} (uprj/get proj ::ucore/runnable-env-ref rel-name)
-        re nil]
-    ; TODO: actually load the environment
-    (uprj/set prj ::ucore/mod-loader loader-name (CustomModLoader. re))))
+  (let [{:keys [:prj :runnable-env]} (uprj/deref-runnable-env proj loader-entity)]
+    (uprj/set prj ::ucore/mod-loader loader-name (CustomModLoader. runnable-env))))
 
 ; Load our builtin loader implementations
 (load "mod_loaders/builtin_docker_hub_mod_loader")

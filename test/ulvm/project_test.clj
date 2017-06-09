@@ -12,8 +12,13 @@
   `[(ulvm/defmodloader :mvn
       "Description of mvn loader"
       {:ulvm.core/runnable-env-ref
+       {:ulvm.core/runnable-env-loader-name :http
+        :ulvm.core/runnable-env-descriptor {:url "http://ulvm.org/loaders/mvn.ulvm"}}})
+
+    (ulvm/defrunnableenvloader :http
+      {:ulvm.core/runnable-env-ref
        {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
-        :ulvm.core/runnable-env-descriptor {:path "re-loaders/mvn.ulvm"}}})
+        :ulvm.core/runnable-env-descriptor {:path "re-loaders/http.ulvm"}}})
 
     (ulvm/defscope :my-scope
       "Description of scope"

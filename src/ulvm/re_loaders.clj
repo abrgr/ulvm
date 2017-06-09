@@ -13,15 +13,20 @@
     [prj re-loader-name re-loader-entity] re-loader-name))
 
 ; TODO: actually implement this
-(deftype CustomREnvLoader []
+(deftype CustomREnvLoader [renv]
   uprj/REnvLoader
   (-get-runnable-env-rep [this prj desc] (e/right {})))
 
-(defmethod uprj/get ::ucore/runnable-env-ref
-  [prj _ name]
-  (uprj/get-prj-el prj name make :renv-loaders :renv-loader ::ucore/runnable-env-ref))
+(defmethod make :default
+  [proj re-loader-name re-loader-entity]
+  (let [{:keys [:prj :runnable-env]} (uprj/deref-runnable-env proj re-loader-entity)]
+    (uprj/set prj ::ucore/runnable-env-loader re-loader-name (CustomREnvLoader. runnable-env))))
 
-(defmethod uprj/set ::ucore/runnable-env-ref
+(defmethod uprj/get ::ucore/runnable-env-loader
+  [prj _ name]
+  (uprj/get-prj-el prj name make :renv-loaders ::ucore/runnable-env-loader))
+
+(defmethod uprj/set ::ucore/runnable-env-loader
   [prj type name item]
   (uprj/set-prj-el prj type name item))
 

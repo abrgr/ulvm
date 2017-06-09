@@ -11,20 +11,21 @@
    :opt [::ucore/flow
          ::ucore/scope
          ::ucore/mod-loader
+         ::ucore/runnable-env-loader
          ::ucore/runnable-env
          ::ucore/runner]))
 
 (defprotocol REnvLoader
-  (-get-runnable-env-rep [this prj desc]
+  (-get-runnable-env-rep [renv-loader prj desc]
     "Retrieves a rep for a runnable environment given the descriptor pointing to it"))
 
 (defn get-runnable-env-rep
   "Retrieves a representation of a runnable environment given a descriptor pointing to it"
-  [this prj desc]
-  (-get-runnable-env-rep this prj desc))
+  [renv-loader prj desc]
+  (-get-runnable-env-rep renv-loader prj desc))
 
 (s/fdef get-runnable-env-rep
-        :args (s/cat :this #(satisfies? REnvLoader %)
+        :args (s/cat :renv-loader #(satisfies? REnvLoader %)
                      :prj ::project
                      :desc :map?)
         :ret (su/either-of? su/any ::ucore/runnable-env))
@@ -55,8 +56,6 @@
    (su/either-of? su/any
                   #(satisfies? REnvLoader %))))
 
-; TODO: define renvs
-
 (s/def ::project
   (s/keys
    :req-un [::env
@@ -65,16 +64,21 @@
             ::renv-loaders
             ::renvs]))
 
+(s/def ::prj ::project)
+
+(s/def ::el (or #(satisfies? ModLoader %)
+                #(satisfies? REnvLoader %)))
+
 (defn get-prj-el
   "Get or create a project element"
-  [prj n maker prj-el ret-key ent-key]
+  [prj n maker prj-el ent-key]
   (let [orig (get-in prj [prj-el n])]
     (cond
-      (some? orig) {:prj prj, ret-key orig}
+      (some? orig) {:prj prj, :el orig}
       :else (let [ent (get-in prj [:entities ent-key n])
                   new-prj (maker prj n ent)]
               {:prj new-prj
-               ret-key (get-in prj [prj-el n])}))))
+               :el (get-in prj [prj-el n])}))))
 
 (s/fdef get-prj-el
         :args (s/cat :prj    ::project
@@ -85,9 +89,8 @@
                                :mod-loaders
                                :renv-loaders
                                :renvs}
-                     :ret-key keyword?
                      :ent-key keyword?)
-        :ret ::project)
+        :ret (s/keys :req-un [::prj ::el]))
 
 (defn set-prj-el
   "Set a project element"
@@ -106,3 +109,26 @@
   "Get an environment value"
   [prj key]
   (get-in prj [:env key]))
+
+(defn- get-rel-name
+  "Runnable env loader name from runnable env ref"
+  [re-ref]
+  (or (::ucore/builtin-runnable-env-loader-name re-ref)
+      (::ucore/runnable-env-loader-name re-ref)))
+
+(defn deref-runnable-env
+  "Retrieve a runnable env from an entity that contains a runnable-env-ref."
+  [proj entity]
+  (let [re-ref (::ucore/runnable-env-ref entity)
+        re-desc (::ucore/runnable-env-descriptor re-ref)
+        rel-name (get-rel-name re-ref)
+        {prj :prj, renv-loader :el} (get proj ::ucore/runnable-env-loader rel-name)
+        renv-rep (get-runnable-env-rep renv-loader prj re-desc)]
+    {:prj prj, :runnable-env renv-rep}))
+
+(s/fdef deref-runnable-env
+        :args (s/cat :proj ::project
+                     :entity (s/keys :req [::ucore/runnable-env-ref]))
+        :ret (s/keys :req-un [::prj
+                              ::ucore/runnable-env]))
+

@@ -10,6 +10,7 @@
     ::scopes
     ::mod-loaders
     ::runnable-envs
+    ::runnable-env-loaders
     ::runners})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -235,7 +236,7 @@
 
 (defn makerunnableenvloader
   [name description runnable-env-loader]
-  {name (with-meta runnable-env-loader {::type ::runnable-envs
+  {name (with-meta runnable-env-loader {::type ::runnable-env-loaders
                                         ::description description})})
 
 (s/fdef makerunnableenvloader
