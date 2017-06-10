@@ -7,27 +7,18 @@
             [cats.core :as m]
             [cats.monad.either :as e]))
 
-(defmulti make
-  "Creates the runnable environment loader for an entity"
-  (fn make-dispatcher
-    [prj re-loader-name re-loader-entity] re-loader-name))
-
 ; TODO: actually implement this
 (deftype CustomREnvLoader [renv]
   uprj/REnvLoader
   (-get-runnable-env-rep [this prj desc] (e/right {})))
 
-(defmethod make :default
+(defmethod uprj/make-renv-loader :default
   [proj re-loader-name re-loader-entity]
   (let [{:keys [:prj :runnable-env]} (uprj/deref-runnable-env proj re-loader-entity)]
-    (uprj/set prj ::ucore/runnable-env-loader re-loader-name (CustomREnvLoader. runnable-env))))
-
-(defmethod uprj/get ::ucore/runnable-env-loader
-  [prj _ name]
-  (uprj/get-prj-el prj name make :renv-loaders ::ucore/runnable-env-loader))
-
-(defmethod uprj/set ::ucore/runnable-env-loader
-  [prj type name item]
-  (uprj/set-prj-el prj type name item))
+    (uprj/set
+     prj
+     :renv-loaders
+     re-loader-name
+     (e/right (CustomREnvLoader. runnable-env)))))
 
 (load "re_loaders/builtin_project_file_re_loader")

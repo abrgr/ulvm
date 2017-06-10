@@ -72,4 +72,4 @@
              :renv-loaders {}
              :renvs        {}
              :env          {}}]
-    (uprj/get prj ::ulvm/mod-loader :mvn)))
+    (uprj/get prj :mod-loaders :mvn)))

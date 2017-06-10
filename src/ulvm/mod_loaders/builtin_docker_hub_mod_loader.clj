@@ -12,9 +12,13 @@
   uprj/ModLoader
   (-load-module [this prj module-descriptor] (pull-image prj module-descriptor)))
 
-(defmethod l/make ::l/docker-hub
-  [_ _ _]
-  (e/try-either (BuiltinDockerHubLoader.)))
+(defmethod uprj/make-mod-loader ::l/docker-hub
+  [prj mod-loader-name mod-loader-entity]
+  (uprj/set
+   prj
+   :mod-loaders
+   mod-loader-name
+   (e/right (BuiltinDockerHubLoader.))))
 
 (defn- to-b64
   "Return string representation of the base64 representation of s or nil if s is nil"

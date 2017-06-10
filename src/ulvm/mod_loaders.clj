@@ -8,17 +8,6 @@
             [cats.core :as m]
             [cats.monad.either :as e]))
 
-(defmulti make
-  "Creates the loader for a loader entity, adding it to the project"
-  (fn make-dispatcher
-    [prj loader-name loader-entity] loader-name))
-
-(s/fdef make
-        :args (s/cat :prj ::uprj/project
-                     :loader-name keyword?
-                     :loader-entity ::ucore/mod-loader)
-        :ret ::uprj/project)
-
 ; TODO: actually implement this
 (deftype CustomModLoader [runnable-env]
   uprj/ModLoader
@@ -31,18 +20,14 @@
     (or (::ucore/builtin-runnable-env-loader-name rel)
         (::ucore/runnable-env-loader-name rel))))
 
-(defmethod uprj/get ::ucore/mod-loader
-  [prj _ name]
-  (uprj/get-prj-el prj name make :mod-loaders ::ucore/mod-loaders))
-
-(defmethod uprj/set ::ucore/mod-loader
-  [prj type name item]
-  (uprj/set-prj-el prj type name item))
-
-(defmethod make :default
+(defmethod uprj/make-mod-loader :default
   [proj loader-name loader-entity]
   (let [{:keys [:prj :runnable-env]} (uprj/deref-runnable-env proj loader-entity)]
-    (uprj/set prj ::ucore/mod-loader loader-name (CustomModLoader. runnable-env))))
+    (uprj/set
+     prj
+     :mod-loaders
+     loader-name
+     (e/right (CustomModLoader. runnable-env)))))
 
 ; Load our builtin loader implementations
 (load "mod_loaders/builtin_docker_hub_mod_loader")
