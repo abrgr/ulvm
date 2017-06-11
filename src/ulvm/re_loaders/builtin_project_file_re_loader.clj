@@ -12,9 +12,10 @@
 (deftype BuiltinProjectFileRELoader []
   uprj/REnvLoader
   (-get-runnable-env-rep [this prj desc]
-    (load-from-file
-     (get-in prj [:env :ulvm.core/project-root])
-     (:path desc))))
+    (e/try-either
+     (load-from-file
+      (get-in prj [:env :ulvm.core/project-root])
+      (:path desc)))))
 
 (defn- load-from-file
   [project-dir path]

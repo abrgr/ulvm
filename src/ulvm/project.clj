@@ -3,6 +3,7 @@
   (:require [clojure.spec :as s]
             [ulvm.core :as ucore]
             [ulvm.spec-utils :as su]
+            [cats.monad.either :as e]
             [cats.core :as m])
   (:refer-clojure :exclude [get set]))
 
@@ -56,6 +57,8 @@
    (su/either-of? su/any
                   #(satisfies? REnvLoader %))))
 
+(s/def ::env map?)
+
 (s/def ::project
   (s/keys
    :req-un [::env
@@ -66,8 +69,11 @@
 
 (s/def ::prj ::project)
 
-(s/def ::el (or #(satisfies? ModLoader %)
-                #(satisfies? REnvLoader %)))
+(s/def ::el (su/either-of?
+             su/any
+             (or #(satisfies? ModLoader %)
+                 #(satisfies? REnvLoader %))))
+                 
 
 (defmulti make-mod-loader
   "Make an instance of a module loader, given the corresponding entity"
@@ -103,7 +109,7 @@
   [prj-type]
   (prj-type {:mod-loaders make-mod-loader
              :renv-loaders make-renv-loader}))
-  
+
 (defn get-prj-ent
   [prj ent-key name]
   (get-in prj [:entities ent-key name]))
@@ -149,14 +155,15 @@
         re-desc (::ucore/runnable-env-descriptor re-ref)
         rel-name (get-rel-name re-ref)
         {prj :prj, rel-either :el} (get proj :renv-loaders rel-name)]
-    (m/mlet [renv-loader rel-either
-             renv-rep (get-runnable-env-rep renv-loader prj re-desc)]
-       {:prj prj, :runnable-env renv-rep})))
+    (e/branch
+      (m/mlet [renv-loader rel-either
+               renv-rep (get-runnable-env-rep renv-loader prj re-desc)]
+              (e/right {:prj prj, :el renv-rep}))
+      (fn [re] {:prj prj, :el re})
+      identity)))
 
 (s/fdef deref-runnable-env
         :args (s/cat :proj ::project
                      :entity (s/keys :req [::ucore/runnable-env-ref]))
-        :ret (su/either-of?
-              su/any
-              (s/keys :req-un [::prj
-                               ::ucore/runnable-env])))
+        :ret (s/keys :req-un [::prj
+                              ::el]))
