@@ -5,7 +5,8 @@
             [ulvm.reader :as uread]
             [ulvm.project :as uprj]
             [ulvm.mod-loaders]
-            [ulvm.re-loaders])
+            [ulvm.re-loaders]
+            [cats.monad.either :as e])
   (:use     [clojure.test :only [is deftest]]))
 
 (def flowfile-example
@@ -71,5 +72,11 @@
              :mod-loaders  {}
              :renv-loaders {}
              :renvs        {}
-             :env          {}}]
-    (uprj/get prj :mod-loaders :mvn)))
+             :env          {::ulvm/project-root "examples"}}
+        {p :prj} (uprj/get prj :mod-loaders :mvn)]
+    (is (= 1 (count (:mod-loaders p))))
+    (is (every? #(e/right? (second %)) (:mod-loaders p)))
+    (is (= 2 (count (:renv-loaders p))))
+    (is (every? #(e/right? (second %)) (:renv-loaders p)))
+    (is (= 2 (count (:renvs p))))
+    (is (every? #(e/right? (second %)) (:renvs p)))))

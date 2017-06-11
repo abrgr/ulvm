@@ -22,7 +22,7 @@
 
 (defmethod uprj/make-mod-loader :default
   [proj loader-name loader-entity]
-  (let [{:keys [:prj :runnable-env]} (uprj/deref-runnable-env proj loader-entity)]
+  (let [{prj :prj, runnable-env :el} (uprj/deref-runnable-env proj loader-entity)]
     (uprj/set
      prj
      :mod-loaders

@@ -7,6 +7,16 @@
             [cats.core :as m])
   (:refer-clojure :exclude [get set]))
 
+(declare get-runnable-env-rep
+         load-module
+         get-prj-ent
+         get-or-make
+         get
+         set
+         get-env
+         make-renv
+         deref-runnable-env)
+
 (s/def ::entities
   (s/keys
    :opt [::ucore/flow
@@ -107,25 +117,41 @@
 
 (defn- maker-from-prj-type
   [prj-type]
-  (prj-type {:mod-loaders make-mod-loader
-             :renv-loaders make-renv-loader}))
+  (prj-type {:mod-loaders  make-mod-loader
+             :renv-loaders make-renv-loader
+             :renvs        make-renv}))
 
 (defn get-prj-ent
   [prj ent-key name]
   (get-in prj [:entities ent-key name]))
 
-(defn get
-  "Get or create a project element"
-  [prj type name]
-  (let [orig (get-in prj [type name])
-        ent-key (entity-type-from-prj-type type)]
+(defn get-or-make
+  "Get or make a project element"
+  [prj type id entity]
+  (let [orig (get-in prj [type id])]
     (if (some? orig)
       {:prj prj, :el orig}
-      (let [ent (get-prj-ent prj ent-key name)
-            make (maker-from-prj-type type)
-            new-prj (make prj name ent)]
+      (let [make (maker-from-prj-type type)
+            new-prj (make prj id entity)]
         {:prj new-prj
-         :el (get-in new-prj [type name])}))))
+         :el (get-in new-prj [type id])}))))
+
+(s/fdef get-or-make
+        :args (s/cat :prj  ::project
+                     :type #{:env
+                             :entities
+                             :mod-loaders
+                             :renv-loaders
+                             :renvs}
+                     :id su/any
+                     :entity su/any)
+        :ret (s/keys :req-un [::prj ::el]))
+
+(defn get
+  "Get or create a project element"
+  [prj type id]
+  (let [ent-key (entity-type-from-prj-type type)]
+    (get-or-make prj type id (get-prj-ent prj ent-key id))))
 
 (s/fdef get
         :args (s/cat :prj  ::project
@@ -148,19 +174,31 @@
   (or (::ucore/builtin-runnable-env-loader-name re-ref)
       (::ucore/runnable-env-loader-name re-ref)))
 
-(defn deref-runnable-env
-  "Retrieve a runnable env from an entity that contains a runnable-env-ref."
-  [proj entity]
+(defn- make-renv
+  "Make a runnable-env (get a runnable env ref)"
+  [proj renv-id entity]
   (let [re-ref (::ucore/runnable-env-ref entity)
         re-desc (::ucore/runnable-env-descriptor re-ref)
         rel-name (get-rel-name re-ref)
         {prj :prj, rel-either :el} (get proj :renv-loaders rel-name)]
-    (e/branch
-      (m/mlet [renv-loader rel-either
-               renv-rep (get-runnable-env-rep renv-loader prj re-desc)]
-              (e/right {:prj prj, :el renv-rep}))
-      (fn [re] {:prj prj, :el re})
-      identity)))
+    (set
+     prj
+     :renvs
+     renv-id
+     (m/mlet [renv-loader rel-either]
+       (get-runnable-env-rep renv-loader prj re-desc)))))
+
+(s/fdef make-renv
+ :args (s/cat :proj    ::project
+              :renv-id ::ucore/runnable-env-ref
+              :entity  (s/keys :req [::ucore/runnable-env-ref]))
+ :ret (s/keys :req-un [::prj ::el]))
+
+(defn deref-runnable-env
+  "Retrieve a runnable env from an entity that contains a runnable-env-ref."
+  [prj entity]
+  (let [re-ref (::ucore/runnable-env-ref entity)]
+    (get-or-make prj :renvs re-ref entity)))
 
 (s/fdef deref-runnable-env
         :args (s/cat :proj ::project

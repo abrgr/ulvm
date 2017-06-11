@@ -14,7 +14,7 @@
   (-get-runnable-env-rep [this prj desc]
     (e/try-either
      (load-from-file
-      (get-in prj [:env :ulvm.core/project-root])
+      (uprj/get-env prj ::ucore/project-root)
       (:path desc)))))
 
 (defn- load-from-file
