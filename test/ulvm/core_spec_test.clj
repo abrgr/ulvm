@@ -13,9 +13,9 @@
 
   (ulvm/defscope :my-scope
     "Description of scope"
-    {:ulvm.core/module
-     {:ulvm.core/mod-loader-name :npm
-      :ulvm.core/mod-descriptor {:name "my-module"}}
+    {:ulvm.core/runnable-env-ref
+     {:ulvm.core/builtin-runnable-env-loader-name :ulvm.core/project-file
+      :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs.ulvm"}}
      :ulvm.core/modules {:adder {:ulvm.core/mod-loader-name :mvn
                                  :ulvm.core/mod-descriptor {:name "my-adder"}}
                          :db-saver {:ulvm.core/mod-loader-name :mvn

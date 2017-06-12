@@ -1,0 +1,23 @@
+(ulvm.core/defrunnableenv :nodejs
+  "NodeJS Scope Runnable Environment"
+  {:ulvm.core/ns :org.ulvm.nodejs
+   :ulvm.core/runnable-scopes
+   {:nodejs
+    {:ulvm.core/module
+     {:ulvm.core/builtin-mod-loader-name :ulvm.mod-loaders/docker-hub
+      :ulvm.core/mod-descriptor {:name "curl"
+                                 :version "latest"}}
+     :ulvm.core/runner
+     {:ulvm.core/builtin-runner-name :ulvm.runners/docker-container
+      :ulvm.core/runner-descriptor
+      {:volumes [{:src (ulvm.core/from-env :org.ulvm.maven/mvn-cache-dir)
+                  :dest "/m2/cache"
+                  :mode "ro"}]}
+      :env {:mvn-username :org.ulvm.maven/mvn-username}}}}
+   :ulvm.core/exported-flows
+   {:org.ulvm.http/load-runnable-env
+    {:ulvm.core/runner
+     {:ulvm.core/runner-name :ulvm.runners/docker-exec
+      :ulvm.core/runner-descriptor {:container (ulvm.core/from-env [#{:org.ulvm.http :ulvm.runners.docker-container} :http :container-name])
+                                    :cmd "curl -XGET '{:url}'"}}
+     :ulvm.core/ideal-flows #{:org.ulvm.renv-loader}}}})

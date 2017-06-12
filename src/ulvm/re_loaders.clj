@@ -14,6 +14,7 @@
 
 (defmethod uprj/make-renv-loader :default
   [proj re-loader-name re-loader-entity]
+  (println re-loader-name)
   (let [{prj :prj, runnable-env :el} (uprj/deref-runnable-env proj re-loader-entity)]
     (uprj/set
      prj
