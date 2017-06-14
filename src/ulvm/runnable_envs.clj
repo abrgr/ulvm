@@ -129,3 +129,5 @@
                      :ideal-flow-name keyword?
                      :params map?)
         :ret (su/either-of? su/any map?))
+
+(load "artifact_loaders/docker_hub")

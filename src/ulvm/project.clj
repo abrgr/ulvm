@@ -179,12 +179,15 @@
 
 (defn get-env
   "Get an environment value"
-  [prj key-path]
-  (get-in prj (cons :env key-path)))
+  ([prj key-path]
+    (get-env prj key-path nil))
+  ([prj key-path not-found]
+    (get-in prj (cons :env key-path) not-found)))
 
 (s/fdef get-env
         :args (s/cat :prj ::project
-                     :key-path sequential?)
+                     :key-path sequential?
+                     :not-found (s/? su/any))
         :ret su/any)
 
 (defn set-env
