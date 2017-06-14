@@ -167,9 +167,22 @@
 (s/def ::runners
   (s/map-of keyword? ::runner))
 
+(s/def ::artifact-descriptor map?)
+
+(s/def ::builtin-artifact-loader-name
+  #{:ulvm.artifact-loaders/project-file
+    :ulvm.artifact-loaders/docker-hub})
+
+(s/def ::artifact-loader
+  (s/keys
+   :req [(or ::builtin-artifact-loader-name
+             ::runnable-env-ref)
+         ::artifact-descriptor]))
+
 (s/def ::runnable-scope
   (s/keys
-   :req [::module ::runner]))
+   :req [::artifact-loader
+         ::runner]))
 
 (s/def ::runnable-scopes
   (s/map-of keyword? ::runnable-scope))

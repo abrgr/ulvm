@@ -3,9 +3,9 @@
   {:ulvm.core/ns :org.ulvm.http
    :ulvm.core/runnable-scopes
    {:http
-    {:ulvm.core/module
-     {:ulvm.core/builtin-mod-loader-name :ulvm.mod-loaders/docker-hub
-      :ulvm.core/mod-descriptor {:name "curl"
+    {:ulvm.core/artifact-loader
+     {:ulvm.core/builtin-artifact-loader-name :ulvm.artifact-loaders/docker-hub
+      :ulvm.core/artifact-descriptor {:name "curl"
                                  :version "latest"}}
      :ulvm.core/runner
      {:ulvm.core/builtin-runner-name :ulvm.runners/docker-container

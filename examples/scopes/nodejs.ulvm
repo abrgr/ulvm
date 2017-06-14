@@ -3,10 +3,10 @@
   {:ulvm.core/ns :org.ulvm.nodejs
    :ulvm.core/runnable-scopes
    {:nodejs
-    {:ulvm.core/module
-     {:ulvm.core/builtin-mod-loader-name :ulvm.mod-loaders/docker-hub
-      :ulvm.core/mod-descriptor {:name "curl"
-                                 :version "latest"}}
+    {:ulvm.core/artifact-loader
+     {:ulvm.core/builtin-artifact-loader-name :ulvm.artifact-loaders/docker-hub
+      :ulvm.core/artifact-descriptor {:image "ulvm-mvn"
+                                      :version "1.0"}}
      :ulvm.core/runner
      {:ulvm.core/builtin-runner-name :ulvm.runners/docker-container
       :ulvm.core/runner-descriptor

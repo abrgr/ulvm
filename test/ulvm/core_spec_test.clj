@@ -74,10 +74,10 @@
     {:ulvm.core/ns :org.ulvm.maven
      :ulvm.core/runnable-scopes
      {:mvn
-      {:ulvm.core/module
-       {:ulvm.core/builtin-mod-loader-name :ulvm.mod-loaders/docker-hub
-        :ulvm.core/mod-descriptor {:name "ulvm-mvn"
-                                   :version "3.2"}} ; module adds items to env under joint namespace ({ns}, ulvm.mod-loaders.docker-hub)/{scope-name}/ (e.g. #{org.ulvm.maven ulvm.mod-loaders.docker-hub}/mvn/{docker-image, version, etc})
+      {:ulvm.core/artifact-loader
+       {:ulvm.core/builtin-artifact-loader-name :ulvm.artifact-loaders/docker-hub
+        :ulvm.core/artifact-descriptor {:name "ulvm-mvn"
+                                        :version "1.0"}} ; module adds items to env under joint namespace ({ns}, ulvm.mod-loaders.docker-hub)/{scope-name}/ (e.g. #{org.ulvm.maven ulvm.mod-loaders.docker-hub}/mvn/{docker-image, version, etc})
        :ulvm.core/runner
        {:ulvm.core/builtin-runner-name :ulvm.runners/docker-container
         :ulvm.core/runner-descriptor
