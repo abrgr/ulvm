@@ -83,7 +83,21 @@
              su/any
              (or #(satisfies? ModLoader %)
                  #(satisfies? REnvLoader %))))
-                 
+
+(defprotocol ArtifactLoader
+  (-get-artifact [artifact-loader prj desc]
+    "Retrieves an artifact given the descriptor pointing to it"))
+
+(defn get-artifact
+  "Retrieves an artifact given the descriptor pointing to it"
+  [artifact-loader prj desc]
+  (-get-artifact artifact-loader prj desc))
+
+(s/fdef get-artifact
+        :args (s/cat :artifact-loader #(satisfies? ArtifactLoader %)
+                     :prj ::project
+                     :desc map?)
+        :ret ::project)
 
 (defmulti make-mod-loader
   "Make an instance of a module loader, given the corresponding entity"
@@ -165,8 +179,24 @@
 
 (defn get-env
   "Get an environment value"
-  [prj key]
-  (get-in prj [:env key]))
+  [prj key-path]
+  (get-in prj (cons :env key-path)))
+
+(s/fdef get-env
+        :args (s/cat :prj ::project
+                     :key-path sequential?)
+        :ret su/any)
+
+(defn set-env
+  "Set an environment value"
+  [prj key-path value]
+  (assoc-in prj (cons :env key-path) value))
+
+(s/fdef set-env
+        :args (s/cat :prj ::project
+                     :key-path sequential?
+                     :value su/any)
+        :ret ::project)
 
 (defn- get-rel-name
   "Runnable env loader name from runnable env ref"
@@ -186,19 +216,23 @@
      :renvs
      renv-id
      (m/mlet [renv-loader rel-either]
-       (get-runnable-env-rep renv-loader prj re-desc)))))
+             (get-runnable-env-rep renv-loader prj re-desc)))))
 
 (s/fdef make-renv
- :args (s/cat :proj    ::project
-              :renv-id ::ucore/runnable-env-ref
-              :entity  (s/keys :req [::ucore/runnable-env-ref]))
- :ret (s/keys :req-un [::prj ::el]))
+        :args (s/cat :proj    ::project
+                     :renv-id ::ucore/runnable-env-ref
+                     :entity  (s/keys :req [::ucore/runnable-env-ref]))
+        :ret (s/keys :req-un [::prj ::el]))
 
 (defn deref-runnable-env
   "Retrieve a runnable env from an entity that contains a runnable-env-ref."
   [prj entity]
-  (let [re-ref (::ucore/runnable-env-ref entity)]
-    (get-or-make prj :renvs re-ref entity)))
+  (let [re-ref (::ucore/runnable-env-ref entity)
+        {re-prj :prj, renv-map :el} (get-or-make prj :renvs re-ref entity)
+        renv-from-renv-map (comp first vals ::ucore/runnable-envs)
+        renv (m/fmap renv-from-renv-map renv-map)]
+    {:prj re-prj
+     :el renv}))
 
 (s/fdef deref-runnable-env
         :args (s/cat :proj ::project

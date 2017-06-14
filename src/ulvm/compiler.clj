@@ -2,7 +2,9 @@
   "Compiler pipeline"
   (:require [ulvm.core :as ucore]
             [ulvm.project :as uprj]
-            [ulvm.reader :as uread]))
+            [ulvm.reader :as uread]
+            [ulvm.runnable-envs :as renv]
+            [cats.core :as m]))
 
 (declare ulvm-compile
          build-scopes
@@ -32,6 +34,6 @@
 (defn- build-scope
   "Builds a scope"
   [proj scope-name scope-ent]
-  (println scope-ent)
-  (let [{prj :prj, renv :el} (uprj/deref-runnable-env proj scope-ent)]
-    prj))
+  (let [{renv-prj :prj, renv :el} (uprj/deref-runnable-env proj scope-ent)
+        launched-prj (m/fmap #(renv/launch renv-prj %) renv)]
+    launched-prj))

@@ -29,7 +29,7 @@
 (defn- pull-image
   "Pull a docker image"
   [prj module-descriptor]
-  (let [scheme-and-host (uprj/get-env prj ::docker-host)
+  (let [scheme-and-host (uprj/get-env prj [::docker-host])
         url (-> (java.net.URI. scheme-and-host)
                 (.resolve "/images/create")
                 (.toString))
