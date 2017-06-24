@@ -5,6 +5,7 @@
  :dependencies [[org.clojure/clojure "1.8.0"]
                 [clojure-future-spec "1.9.0-alpha14"]
                 [org.clojure/test.check "0.9.0"]
+                [com.spotify/docker-client "8.7.3"]
                 [http-kit "2.2.0"]
                 [funcool/cats "2.1.0"]]
  :plugins [[lein-cljfmt "0.5.6"]]

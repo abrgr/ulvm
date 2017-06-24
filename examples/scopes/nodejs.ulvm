@@ -5,15 +5,14 @@
    {:nodejs
     {:ulvm.core/artifact-loader
      {:ulvm.core/builtin-artifact-loader-name :ulvm.artifact-loaders/docker-hub
-      :ulvm.core/artifact-descriptor {:image "ulvm-mvn"
-                                      :version "1.0"}}
+      :ulvm.core/artifact-descriptor {:image "node:8.1.2-alpine"}}
      :ulvm.core/runner
      {:ulvm.core/builtin-runner-name :ulvm.runners/docker-container
       :ulvm.core/runner-descriptor
-      {:volumes [{:src (ulvm.core/from-env :org.ulvm.maven/mvn-cache-dir)
+      {:volumes [{:src (ulvm.core/from-env :org.ulvm.node/mvn-cache-dir)
                   :dest "/m2/cache"
                   :mode "ro"}]}
-      :env {:mvn-username :org.ulvm.maven/mvn-username}}}}
+      :env {:npm-username :org.ulvm.maven/mvn-username}}}}
    :ulvm.core/exported-flows
    {:org.ulvm.http/load-runnable-env
     {:ulvm.core/runner
