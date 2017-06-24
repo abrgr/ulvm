@@ -73,7 +73,6 @@
 
 (defn- run-scope
   [prj scope-name runnable-scope]
-  (println (str "running" scope-name))
   (let [artifact-loader (::ucore/artifact-loader runnable-scope)
         artifact-prj (get-artifact-if-needed prj artifact-loader)
         ; TODO: run artifact with runner
@@ -83,9 +82,7 @@
 (defn launch
   "Launches a runnable environment, returning an updated project"
   [prj re-rep]
-  (println (str "re" re-rep))
   (let [scopes (::ucore/runnable-scopes re-rep)]
-    (println (str "scopes" scopes))
     (reduce
      (fn [p [scope-name scope]]
        (run-scope p scope-name scope))
