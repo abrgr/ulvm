@@ -4,6 +4,7 @@
             [ulvm.project :as uprj]
             [ulvm.reader :as uread]
             [ulvm.runnable-envs :as renv]
+            [ulvm.runners]
             [cats.core :as m]))
 
 (declare ulvm-compile

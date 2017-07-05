@@ -28,6 +28,3 @@
      :mod-loaders
      loader-name
      (e/right (CustomModLoader. runnable-env)))))
-
-; Load our builtin loader implementations
-(load "mod_loaders/builtin_docker_hub_mod_loader")

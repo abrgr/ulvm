@@ -9,10 +9,8 @@
      :ulvm.core/runner
      {:ulvm.core/builtin-runner-name :ulvm.runners/docker-container
       :ulvm.core/runner-descriptor
-      {:volumes [{:src (ulvm.core/from-env :org.ulvm.node/mvn-cache-dir)
-                  :dest "/m2/cache"
-                  :mode "ro"}]}
-      :env {:npm-username :org.ulvm.maven/mvn-username}}}}
+      {:image (ulvm.core/from-env :image)
+       :env {"npm-username" "org.ulvm.maven/mvn-username"}}}}}
    :ulvm.core/exported-flows
    {:org.ulvm.http/load-runnable-env
     {:ulvm.core/runner

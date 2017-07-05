@@ -4,6 +4,7 @@
             [ulvm.core :as ucore]
             [ulvm.reader :as reader]
             [ulvm.project :as uprj]
+            [cats.core :as m]
             [cats.monad.either :as e]
             [clojure.java.io :as io]))
 
@@ -12,10 +13,9 @@
 (deftype BuiltinProjectFileRELoader []
   uprj/REnvLoader
   (-get-runnable-env-rep [this prj desc]
-    (e/try-either
-     (load-from-file
-      (uprj/get-env prj [::ucore/project-root])
-      (:path desc)))))
+    (m/mlet [root (uprj/get-env prj [::ucore/project-root])]
+      (e/try-either
+       (load-from-file root (:path desc))))))
 
 (defn- load-from-file
   [project-dir path]

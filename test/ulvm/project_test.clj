@@ -6,6 +6,7 @@
             [ulvm.project :as uprj]
             [ulvm.mod-loaders]
             [ulvm.re-loaders]
+            [cats.core :as m]
             [cats.monad.either :as e])
   (:use     [clojure.test :only [is deftest]]))
 
@@ -80,3 +81,28 @@
     (is (every? #(e/right? (second %)) (:renv-loaders p)))
     (is (= 2 (count (:renvs p))))
     (is (every? #(e/right? (second %)) (:renvs p)))))
+
+(deftest resolve-env-refs-ok
+  (st/instrument (st/instrumentable-syms ['ulvm 'uprj]))
+  (let [prj {:entities     {}
+             :mod-loaders  {}
+             :renv-loaders {}
+             :renvs        {}
+             :env          {:my-val :wrong
+                            :my {:ctx (e/right {:my-val :right})}}}
+        to-resolve {:a '(ulvm.core/from-env :my-val)}
+        resolved (uprj/resolve-env-refs prj [:my :ctx] to-resolve)]
+      (is (e/right? resolved))
+      (is (= {:a :right} (m/extract resolved)))))
+
+(deftest resolve-env-refs-err
+  (st/instrument (st/instrumentable-syms ['ulvm 'uprj]))
+  (let [prj {:entities     {}
+             :mod-loaders  {}
+             :renv-loaders {}
+             :renvs        {}
+             :env          {:my-val :wrong
+                            :my {:ctx (e/left 4)}}}
+        to-resolve {:a '(ulvm.core/from-env :my-val)}
+        resolved (uprj/resolve-env-refs prj [:my :ctx] to-resolve)]
+      (is (e/left? resolved))))
