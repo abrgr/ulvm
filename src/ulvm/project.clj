@@ -10,7 +10,7 @@
   (:refer-clojure :exclude [get set]))
 
 (declare get-runnable-env-rep
-         load-module
+         scope-with-results
          get-prj-ent
          get-or-make
          get
@@ -23,7 +23,7 @@
   (s/keys
    :opt [::ucore/flow
          ::ucore/scope
-         ::ucore/mod-loader
+         ::ucore/mod-combinator
          ::ucore/runnable-env-loader
          ::ucore/runnable-env
          ::ucore/runner]))
@@ -43,25 +43,43 @@
                      :desc map?)
         :ret (su/either-of? su/any ::ucore/runnable-env))
 
-(defprotocol ModLoader
-  (-load-module [this prj module-descriptor] "Loads a module, returning an either[error, env]"))
+(defprotocol ModCombinator
+  (-scope-with-results
+    [this prj invocations deps consumer result]
+    "Returns an AST for a scope in which the results of
+     the invocations are available and in which consumer
+     is included (consumer consumes the results)."))
 
-(defn load-module
+(defn scope-with-results
   "Loads a module"
-  [this prj module-descriptor]
-  (-load-module this prj module-descriptor))
+  [this prj invocations deps consumer result]
+  (-scope-with-results this prj invocations deps consumer result))
 
-(s/fdef load-module
-        :args (s/cat :loader #(satisfies? ModLoader %)
-                     :prj ::project
-                     :module-descriptor ::ucore/module-descriptor)
+(s/def ::result-name keyword?)
+(s/def ::arguments
+  (s/map-of keyword?
+          (s/cat :sub-result-name keyword?
+                 :result-name     symbol?)))
+
+(s/def ::invocation
+  (s/keys :req-un [::result-name
+                   ::ucore/module-combinator
+                   ::arguments]))
+
+(s/fdef scope-with-results
+        :args (s/cat :combinator  #(satisfies? ModCombinator %)
+                     :prj         ::project
+                     :invocations (s/+ ::invocation)
+                     :deps        (s/map-of symbol? (s/+ symbol?))
+                     :consumer    su/any
+                     :result      (s/? symbol?))
         :ret (su/either-of? su/any map?))
 
-(s/def ::mod-loaders
+(s/def ::mod-combinators
   (s/map-of
    keyword?
    (su/either-of? su/any
-                  #(satisfies? ModLoader %))))
+                  #(satisfies? ModCombinator %))))
 
 (s/def ::renv-loaders
   (s/map-of
@@ -75,7 +93,7 @@
   (s/keys
    :req-un [::env
             ::entities
-            ::mod-loaders
+            ::mod-combinators
             ::renv-loaders
             ::renvs]))
 
@@ -83,7 +101,7 @@
 
 (s/def ::el (su/either-of?
              su/any
-             (or #(satisfies? ModLoader %)
+             (or #(satisfies? ModCombinator %)
                  #(satisfies? REnvLoader %))))
 
 (defprotocol ArtifactLoader
@@ -101,14 +119,14 @@
                      :desc map?)
         :ret ::project)
 
-(defmulti make-mod-loader
-  "Make an instance of a module loader, given the corresponding entity"
-  (fn make-mod-loader-dispatcher [prj name entity] name))
+(defmulti make-mod-combinator
+  "Make an instance of a module combinator, given the corresponding entity"
+  (fn make-mod-combinator-dispatcher [prj name entity] name))
 
-(s/fdef make-mod-loader
-        :args (s/cat :prj ::project
-                     :loader-name keyword?
-                     :loader-entity (s/nilable ::ucore/mod-loader))
+(s/fdef make-mod-combinator
+        :args (s/cat :prj    ::project
+                     :name   keyword?
+                     :entity (s/nilable ::ucore/mod-combinator))
         :ret ::project)
 
 (defmulti make-renv-loader
@@ -134,14 +152,14 @@
 
 (defn- entity-type-from-prj-type
   [prj-type]
-  (prj-type {:mod-loaders ::ucore/mod-loaders
-             :renv-loaders ::ucore/runnable-env-loaders}))
+  (prj-type {:mod-combinators ::ucore/mod-combinators
+             :renv-loaders    ::ucore/runnable-env-loaders}))
 
 (defn- maker-from-prj-type
   [prj-type]
-  (prj-type {:mod-loaders  make-mod-loader
-             :renv-loaders make-renv-loader
-             :renvs        make-renv}))
+  (prj-type {:mod-combinators make-mod-combinator
+             :renv-loaders    make-renv-loader
+             :renvs           make-renv}))
 
 (defn get-prj-ent
   [prj ent-key name]
@@ -162,7 +180,7 @@
         :args (s/cat :prj  ::project
                      :type #{:env
                              :entities
-                             :mod-loaders
+                             :mod-combinators
                              :renv-loaders
                              :renvs}
                      :id su/any
@@ -179,7 +197,7 @@
         :args (s/cat :prj  ::project
                      :type #{:env
                              :entities
-                             :mod-loaders
+                             :mod-combinators
                              :renv-loaders
                              :renvs}
                      :name keyword?)

@@ -8,7 +8,7 @@
 (s/def ::type
   #{::flows
     ::scopes
-    ::mod-loaders
+    ::mod-combinators
     ::runnable-envs
     ::runnable-env-loaders
     ::runners})
@@ -106,48 +106,47 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::module
   (s/keys
-   :req [(or ::mod-loader-name ::builtin-mod-loader-name)
+   :req [::mod-combinator-name
          ::mod-descriptor]
    :opt [::config]))
 
-(s/def ::mod-loader-name keyword?)
-
-(s/def ::builtin-mod-loader-name #{:ulvm.mod-loaders/docker-hub})
+(s/def ::mod-combinator-name keyword?)
 
 (s/def ::mod-descriptor map?)
 
 (s/def ::modules (s/map-of keyword? ::module))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Loader Stuff
+; Combinator Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(s/def ::mod-loader
+(s/def ::mod-combinator
   (s/keys
    :req [::runnable-env-ref]))
 
-(s/def ::mod-loaders
-  (s/map-of keyword? ::mod-loader))
+(s/def ::mod-combinators
+  (s/map-of keyword? ::mod-combinator))
 
-(defmacro defmodloader
-  "Defines a new loader, which is responsible for retrieving modules from somewhere"
-  ([name loader]
-   `(makemodloader ~name (str ~name) ~loader))
-  ([name description loader]
-   `(makemodloader ~name ~description (quote ~loader))))
+(defmacro defmodcombinator
+  "Defines a new module combinator, which is responsible
+   for generating ASTs for module invocations."
+  ([name combinator]
+   `(makemodcombinator ~name (str ~name) ~combinator))
+  ([name description combinator]
+   `(makemodcombinator ~name ~description (quote ~combinator))))
 
-(defn makemodloader
-  [name description loader]
-  {name (with-meta loader {::type ::mod-loaders
+(defn makemodcombinator
+  [name description combinator]
+  {name (with-meta combinator {::type ::mod-combinators
                            ::description description})})
 
-(s/fdef makemodloader
+(s/fdef makemodcombinator
         :args (s/cat
                :name keyword?
                :description string?
-               :loader ::mod-loader)
-        :ret (s/map-of keyword? ::mod-loader)
+               :combinator ::mod-combinator)
+        :ret (s/map-of keyword? ::mod-combinator)
         :fn (fn [{args :args ret :ret}]
-              (= ((:name args) ret) (:loader args))))
+              (= ((:name args) ret) (:combinator args))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Runnable Environment Stuff

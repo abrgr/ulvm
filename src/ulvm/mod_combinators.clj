@@ -1,5 +1,5 @@
-(ns ^{:author "Adam Berger"} ulvm.mod-loaders
-  "ULVM loader definition and builtin loaders"
+(ns ^{:author "Adam Berger"} ulvm.mod-combinators
+  "ULVM module combinator definition"
   (:require [clojure.spec :as s]
             [ulvm.core :as ucore]
             [ulvm.project :as uprj]
@@ -9,9 +9,9 @@
             [cats.monad.either :as e]))
 
 ; TODO: actually implement this
-(deftype CustomModLoader [runnable-env]
-  uprj/ModLoader
-  (-load-module [this prj module-descriptor] (e/right {})))
+(deftype CustomModCombinator [runnable-env]
+  uprj/ModCombinator
+  (-scope-with-results [this prj invocations deps consumer result] (e/right {})))
 
 (defn- get-rel-name
   "Runnable env loader name from loader entity"
@@ -20,11 +20,11 @@
     (or (::ucore/builtin-runnable-env-loader-name rel)
         (::ucore/runnable-env-loader-name rel))))
 
-(defmethod uprj/make-mod-loader :default
-  [proj loader-name loader-entity]
-  (let [{prj :prj, runnable-env :el} (uprj/deref-runnable-env proj loader-entity)]
+(defmethod uprj/make-mod-combinator :default
+  [proj combinator-name combinator-entity]
+  (let [{prj :prj, runnable-env :el} (uprj/deref-runnable-env proj combinator-entity)]
     (uprj/set
      prj
-     :mod-loaders
-     loader-name
-     (e/right (CustomModLoader. runnable-env)))))
+     :mod-combinators
+     combinator-name
+     (e/right (CustomModCombinator. runnable-env)))))

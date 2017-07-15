@@ -1,7 +1,6 @@
 (ns ^{:author "Adam Berger"} ulvm.artifact-loaders.docker-hub
   "ULVM builtin Docker Hub loader"
-  (:require [ulvm.mod-loaders :as l]
-            [ulvm.runnable-envs :as renv]
+  (:require [ulvm.runnable-envs :as renv]
             [ulvm.docker-utils :as docker]))
 
 (declare pull-image)

@@ -5,8 +5,8 @@
   (:use     [clojure.test :only [deftest]]))
 
 (defn flowfile-examples []
-  (ulvm/defmodloader :mvn
-    "Description of mvn loader"
+  (ulvm/defmodcombinator :mvn
+    "Description of mvn combinator"
     {:ulvm.core/runnable-env-ref
      {:ulvm.core/builtin-runnable-env-loader-name :ulvm.runnable-env-loaders/http
       :ulvm.core/runnable-env-descriptor {:url "http://github.com/ulvm/contrib/1.2.3/mvn-runnable-env.ulvm"}}})
@@ -16,9 +16,9 @@
     {:ulvm.core/runnable-env-ref
      {:ulvm.core/builtin-runnable-env-loader-name :ulvm.core/project-file
       :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs.ulvm"}}
-     :ulvm.core/modules {:adder {:ulvm.core/mod-loader-name :mvn
+     :ulvm.core/modules {:adder {:ulvm.core/mod-combinator-name :mvn
                                  :ulvm.core/mod-descriptor {:name "my-adder"}}
-                         :db-saver {:ulvm.core/mod-loader-name :mvn
+                         :db-saver {:ulvm.core/mod-combinator-name :mvn
                                     :ulvm.core/mod-descriptor {:name "my-db-saver"}}}
      :ulvm.core/init ((adder {:v1 42} :as my-adder))})
 
@@ -92,7 +92,7 @@
         :ulvm.core/runner-descriptor {:method "post"
                                       :host (ulvm.core/from-env [#{:org.ulvm.maven :ulvm.runners.docker-container} :mvn :container-ip])
                                       :body :ulvm.core/mod-descriptor}}
-       :ulvm.core/ideal-flows #{:org.ulvm.mod-loader}}}}))
+       :ulvm.core/ideal-flows #{:org.ulvm.mod-combinator}}}}))
 
 (deftest flowfile-examples-match-specs
   (st/instrument (st/instrumentable-syms 'ulvm))

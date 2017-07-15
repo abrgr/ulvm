@@ -16,11 +16,11 @@
   [directory]
   (let [ulvm-entities (uread/read-ulvm-dir directory)
         env {} ; TODO: get a real environment
-        empty-project {:entities     ulvm-entities
-                       :mod-loaders  {}
-                       :renv-loaders {}
-                       :renvs        {}
-                       :env          {::ucore/project-root directory}}
+        empty-project {:entities        ulvm-entities
+                       :mod-combinators {}
+                       :renv-loaders    {}
+                       :renvs           {}
+                       :env             {::ucore/project-root directory}}
         prj-with-scopes (build-scopes empty-project)]
     prj-with-scopes)) ; TODO
 
