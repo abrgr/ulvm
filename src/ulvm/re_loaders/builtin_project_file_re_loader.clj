@@ -14,8 +14,8 @@
   uprj/REnvLoader
   (-get-runnable-env-rep [this prj desc]
     (m/mlet [root (uprj/get-env prj [::ucore/project-root])]
-      (e/try-either
-       (load-from-file root (:path desc))))))
+            (e/try-either
+             (load-from-file root (:path desc))))))
 
 (defn- load-from-file
   [project-dir path]

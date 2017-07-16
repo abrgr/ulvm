@@ -92,8 +92,8 @@
                                :my {:ctx (e/right {:my-val :right})}}}
         to-resolve {:a '(ulvm.core/from-env :my-val)}
         resolved (uprj/resolve-env-refs prj [:my :ctx] to-resolve)]
-      (is (e/right? resolved))
-      (is (= {:a :right} (m/extract resolved)))))
+    (is (e/right? resolved))
+    (is (= {:a :right} (m/extract resolved)))))
 
 (deftest resolve-env-refs-err
   (st/instrument (st/instrumentable-syms ['ulvm 'uprj]))
@@ -105,4 +105,4 @@
                                :my {:ctx (e/left 4)}}}
         to-resolve {:a '(ulvm.core/from-env :my-val)}
         resolved (uprj/resolve-env-refs prj [:my :ctx] to-resolve)]
-      (is (e/left? resolved))))
+    (is (e/left? resolved))))

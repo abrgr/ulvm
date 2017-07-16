@@ -137,7 +137,7 @@
 (defn makemodcombinator
   [name description combinator]
   {name (with-meta combinator {::type ::mod-combinators
-                           ::description description})})
+                               ::description description})})
 
 (s/fdef makemodcombinator
         :args (s/cat

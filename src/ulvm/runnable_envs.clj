@@ -62,12 +62,12 @@
   (let [desc (::ucore/artifact-descriptor artifact-loader)]
     (if (contains? artifact-loader ::ucore/builtin-artifact-loader-name)
       (let [name (::ucore/builtin-artifact-loader-name artifact-loader)]
-        (set-loaded-artifact prj artifact-loader 
-         (builtin-load-artifact prj name desc)))
+        (set-loaded-artifact prj artifact-loader
+                             (builtin-load-artifact prj name desc)))
       (let [{renv-prj :prj, renv :el} (uprj/deref-runnable-env prj artifact-loader)
             desc (::ucore/artifact-descriptor artifact-loader)]
         (set-loaded-artifact renv-prj artifact-loader
-         (custom-load-artifact renv-prj renv desc))))))
+                             (custom-load-artifact renv-prj renv desc))))))
 
 (s/fdef get-artifact
         :args (s/cat :prj ::uprj/project
@@ -91,10 +91,10 @@
 (defn- run-artifact
   [prj run-name artifact-loader runner]
   (uprj/set-env prj [:runs run-name]
-    (futil/mlet e/context
-                [resolved-runner (uprj/resolve-env-refs prj (artifact-env-keypath artifact-loader) runner)
-                 run-result      (uprj/run prj artifact-loader resolved-runner)]
-      (e/right run-result))))
+                (futil/mlet e/context
+                            [resolved-runner (uprj/resolve-env-refs prj (artifact-env-keypath artifact-loader) runner)
+                             run-result      (uprj/run prj artifact-loader resolved-runner)]
+                            (e/right run-result))))
 
 (defn- run-scope
   [prj scope-name runnable-scope]

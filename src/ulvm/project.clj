@@ -58,8 +58,8 @@
 (s/def ::result-name keyword?)
 (s/def ::arguments
   (s/map-of keyword?
-          (s/cat :sub-result-name keyword?
-                 :result-name     symbol?)))
+            (s/cat :sub-result-name keyword?
+                   :result-name     symbol?)))
 
 (s/def ::invocation
   (s/keys :req-un [::result-name
@@ -206,11 +206,11 @@
 (defn get-ctx-env
   "Get an environment value, raising the sub-keys
    of a given path (context) to the top level"
-   ([prj ctx key-path]
-    (get-ctx-env prj ctx key-path nil))
-   ([prj ctx key-path not-found]
-    (or (get-env prj (into ctx key-path) not-found)
-        (get-env prj key-path not-found))))
+  ([prj ctx key-path]
+   (get-ctx-env prj ctx key-path nil))
+  ([prj ctx key-path not-found]
+   (or (get-env prj (into ctx key-path) not-found)
+       (get-env prj key-path not-found))))
 
 (s/fdef get-ctx-env
         :args (s/cat :prj ::project
@@ -222,9 +222,9 @@
 (defn get-env
   "Get an environment value"
   ([prj key-path]
-    (get-env prj key-path nil))
+   (get-env prj key-path nil))
   ([prj key-path not-found]
-    (futil/get-in-either prj (cons :env key-path) not-found)))
+   (futil/get-in-either prj (cons :env key-path) not-found)))
 
 (s/fdef get-env
         :args (s/cat :prj ::project
@@ -252,19 +252,19 @@
   "Zipper for arbitrary builtin data structures"
   [root]
   (z/zipper
-    coll?
-    (fn [x]
-      (cond
-        (map? x) (seq x)
-        (set? x) (seq x)
-        :else x))
-    (fn [x children]
-      (cond
-        (map? x) (into {} (map #(into [] %) children))
-        (set? x) (into #{} children)
-        (vector? x) (into [] children)
-        :else children))
-    root))
+   coll?
+   (fn [x]
+     (cond
+       (map? x) (seq x)
+       (set? x) (seq x)
+       :else x))
+   (fn [x children]
+     (cond
+       (map? x) (into {} (map #(into [] %) children))
+       (set? x) (into #{} children)
+       (vector? x) (into [] children)
+       :else children))
+   root))
 
 (defn- resolve-env-ref
   [prj ctx node]
@@ -278,17 +278,17 @@
    (ulvm.core/from-env [:my-env-key]),
    returns a form with all from-env invocations
    replaced with their values"
-   [prj ctx f]
-   (loop [loc (any-zip f)]
-     (let [node (z/node loc)]
-       (if (z/end? loc)
-         (e/right (z/root loc))
-         (if (is-env-ref node)
-           (let [val (resolve-env-ref prj ctx node)]
-             (if (e/left? val)
-               val
-               (recur (z/replace loc val))))
-           (recur (z/next loc)))))))
+  [prj ctx f]
+  (loop [loc (any-zip f)]
+    (let [node (z/node loc)]
+      (if (z/end? loc)
+        (e/right (z/root loc))
+        (if (is-env-ref node)
+          (let [val (resolve-env-ref prj ctx node)]
+            (if (e/left? val)
+              val
+              (recur (z/replace loc val))))
+          (recur (z/next loc)))))))
 
 (s/fdef resolve-env-refs
         :args (s/cat :prj  ::project

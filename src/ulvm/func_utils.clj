@@ -34,7 +34,7 @@
                  (case l
                    :let  `(let ~r ~acc)
                    :when `(m/bind (m/guard ~r)
-                            (fn [~(gensym)] ~acc))
+                                  (fn [~(gensym)] ~acc))
                    `(let [r# ~r]
                       (m/bind (if (and (satisfies? p/Contextual r#)
                                        (some? (p/-get-context r#)))
@@ -51,10 +51,10 @@
          form          f
          has-key       (contains? form key)
          val           (if has-key (get form key) not-found)]
-    (if (or (not has-key)
-            (empty? next-key-path))
-      (lift-either val)
-      (get-in-either val next-key-path not-found))))
+        (if (or (not has-key)
+                (empty? next-key-path))
+          (lift-either val)
+          (get-in-either val next-key-path not-found))))
 
 (s/fdef get-in-either
         :args (s/cat :f         su/any
@@ -62,5 +62,5 @@
                      :not-found su/any)
         :ret  su/any
         :fn   (fn [{args :args ret :ret}]
-                  (or (= ret (:not-found args))
-                      (e/either? ret))))
+                (or (= ret (:not-found args))
+                    (e/either? ret))))
