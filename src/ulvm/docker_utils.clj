@@ -94,6 +94,19 @@
         (.networkDisabled (:network-disabled desc))
         (add-volumes      (:volumes desc)))))
 
+(defn- container-ip
+  [client container-id]
+  (futil/mlet e/context
+              [info               (e/try-either (.inspectContainer client container-id))
+               network-settings   (.networkSettings info)
+               base-ip            (.ipAddress network-settings)
+               network-ip         (some->> network-settings
+                                           (.networks)
+                                           (first)
+                                           (.getValue)
+                                           (.ipAddress))]
+              (e/right (or base-ip network-ip))))
+
 (defn create-container
   "Create a docker container"
   [prj desc]
@@ -102,8 +115,10 @@
                cfg          (create-container-cfg desc)
                container    (e/try-either (.createContainer client cfg))
                container-id (.id container)
-               _            (e/try-either (.startContainer client container-id))]
-              (e/right {:container-id container-id})))
+               _            (e/try-either (.startContainer client container-id))
+               ip           (container-ip client container-id)]
+              (e/right {:container-id container-id
+                        :container-ip ip})))
 
 (defn- read-buffer
   [buf]
@@ -115,17 +130,21 @@
 (defn- log-seq
   [log-stream]
   (lazy-seq
-   (if (.hasNext log-stream)
-     (let [msg     (.next log-stream)
-           stream  (.stream msg)
-           content (read-buffer (.content msg))
-           log     {:content content
-                    :stream  (when
-                              (= stream (LogMessage$Stream/STDOUT)) :stdout
-                              (= stream (LogMessage$Stream/STDERR)) :stderr
-                              :else                                 :unknown)}]
-       (cons log (log-seq log-stream)))
-     nil)))
+   (try
+     (if (.hasNext log-stream)
+       (let [msg     (.next log-stream)
+             stream  (.stream msg)
+             content (read-buffer (.content msg))
+             log     {:content content
+                      :stream  (when
+                                (= stream (LogMessage$Stream/STDOUT)) :stdout
+                                (= stream (LogMessage$Stream/STDERR)) :stderr
+                                :else                                 :unknown)}]
+         (cons log (log-seq log-stream)))
+       nil)
+     ; TODO: Fix docker client so it doesn't throw
+     ;       when it hits EOF.
+     (catch RuntimeException _ nil))))
 
 (defn get-container-output
   "Returns an either of a lazy seq of container output lines"

@@ -9,3 +9,4 @@
 
 ; Load builtin runners
 (load "runners/docker-container")
+(load "runners/http")
