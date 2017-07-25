@@ -88,11 +88,17 @@
                      :artifact-loader ::ucore/artifact-loader)
         :ret ::uprj/project)
 
+(defn- run-scope-keypath
+  ([]
+    [:runs :scope])
+  ([scope-name]
+    (conj (run-scope-keypath) scope-name)))
+
 (defn- run-artifact
-  [prj run-name artifact-loader runner]
-  (uprj/set-env prj [:runs run-name]
+  [prj keypath artifact-loader runner]
+  (uprj/set-env prj keypath
                 (futil/mlet e/context
-                            [resolved-runner (uprj/resolve-env-refs prj (artifact-env-keypath artifact-loader) runner)
+                            [resolved-runner (uprj/eval-in-ctx prj (artifact-env-keypath artifact-loader) runner)
                              run-result      (uprj/run prj artifact-loader resolved-runner)]
                             (e/right run-result))))
 
@@ -101,7 +107,7 @@
   (let [artifact-loader (::ucore/artifact-loader runnable-scope)
         runner          (::ucore/runner runnable-scope)
         artifact-prj    (get-artifact-if-needed prj artifact-loader)]
-    (run-artifact artifact-prj [:scope scope-name] artifact-loader runner)))
+    (run-artifact artifact-prj (run-scope-keypath scope-name) artifact-loader runner)))
 
 (defn launch
   "Launches a runnable environment, returning an updated project"
@@ -129,26 +135,43 @@
 
 (defn invoke-flow
   "Invokes the named flow with the given parameters"
-  [re-rep flow-name params env]
-  (e/left nil))
+  [prj re-rep flow-name params]
+  (futil/mlet e/context
+              [runner          (get-in re-rep [::ucore/exported-flows flow-name ::ucore/runner])
+               ctx             (run-scope-keypath)
+               resolved-runner (uprj/eval-in-ctx prj ctx {'*params* params} runner)
+               run-result      @(uprj/run prj ctx resolved-runner)]
+    prj))
 
 (s/fdef invoke-flow
-        :args (s/cat :re-rep ::ucore/runnable-env
+        :args (s/cat :prj ::uprj/project
+                     :re-rep ::ucore/runnable-env
                      :flow-name keyword?
-                     :params map?
-                     :env map?)
+                     :params map?)
         :ret (su/either-of? su/any map?))
+
+(defn- find-ideal-flow
+  [re-rep ideal-flow-name]
+  (some->
+    (filter
+      #(contains? (::ucore/ideal-flows (val %)) ideal-flow-name)
+      (::ucore/exported-flows re-rep))
+    (first)
+    (key)
+    (futil/opt-either (str "No ideal flow [" ideal-flow-name "] in " (::ucore/ns re-rep)))))
 
 (defn invoke-ideal-flow
   "Invokes the flow that matches the named ideal flow with the given parameters"
   [prj re-rep ideal-flow-name params]
-  (e/left nil))
+  (futil/mlet e/context
+              [flow       (find-ideal-flow re-rep ideal-flow-name)]
+              (invoke-flow prj re-rep flow params)))
 
 (s/fdef invoke-ideal-flow
         :args (s/cat :prj ::uprj/project
                      :re-rep ::ucore/runnable-env
                      :ideal-flow-name keyword?
                      :params map?)
-        :ret (su/either-of? su/any map?))
+        :ret ::uprj/project)
 
 (load "artifact_loaders/docker_hub")

@@ -154,7 +154,8 @@
 (s/def ::runner-name keyword?)
 
 (s/def ::builtin-runner-name
-  #{:ulvm.runners/docker-container})
+  #{:ulvm.runners/docker-container
+    :ulvm.runners/http})
 
 (s/def ::runner-descriptor map?)
 

@@ -106,3 +106,15 @@
         to-resolve {:a '(ulvm.core/from-env :my-val)}
         resolved (uprj/resolve-env-refs prj [:my :ctx] to-resolve)]
     (is (e/left? resolved))))
+
+(deftest selective-eval
+  (st/instrument (st/instrumentable-syms ['ulvm 'uprj]))
+  (let [prj {:entities        {}
+             :mod-combinators {}
+             :renv-loaders    {}
+             :renvs           {}
+             :env             {}}
+        to-eval {:a '(ulvm.core/eval (str "hello" " " "world"))}
+        evaled (uprj/selective-eval prj to-eval)]
+    (is (e/right? evaled))
+    (is (= {:a "hello world"} (m/extract evaled)))))

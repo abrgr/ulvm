@@ -7,10 +7,11 @@
 
 (defmethod uprj/run :ulvm.runners/http
   [prj ctx runner]
-  (let [desc (::ucore/runner-descriptor runner)]
+  (let [desc                (::ucore/runner-descriptor runner)
+        acceptable-statuses (:acceptable-status-codes desc)]
     (http/request desc
                   (fn [{:keys [status body error]}]
                     (cond
-                      (some? error)                                      (e/left error)
-                      (contains? (:acceptable-status-codes desc) status) (e/right body)
-                      :else                                              (e/left (str "Status code: " status)))))))
+                      (some? error)                          (e/left error)
+                      (contains? acceptable-statuses status) (e/right body)
+                      :else                                  (e/left (str "Status code: " status)))))))

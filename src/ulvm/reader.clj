@@ -17,7 +17,7 @@
   (->> directory
        (io/as-file)
        (file-seq)
-       (filter #(.isFile %))
+       (filter #(and (.isFile %) (.endsWith (.getCanonicalPath %) ".ulvm")))
        (map read-ulvm-file)
        (combine-ulvm-maps)))
 

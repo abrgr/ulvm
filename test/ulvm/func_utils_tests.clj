@@ -12,6 +12,14 @@
                          b (e/right (+ a 5))]
                         (+ b 7)))))
 
+(deftest mlet-destructured
+  (st/instrument (st/instrumentable-syms 'futil))
+  (is (= 20 (futil/mlet e/context
+                        [{a :a b :b} (e/right {:a 4 :b 6})
+                         {c :c d :d} {:c 7 :d 3}
+                         res (+ a b c d)]
+                        res))))
+
 (deftest mlet-fallthrough
   (st/instrument (st/instrumentable-syms 'futil))
   (is (e/left? (futil/mlet e/context

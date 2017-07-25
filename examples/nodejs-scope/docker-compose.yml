@@ -1,0 +1,9 @@
+version: '2'
+services:
+  nodejs-scope:
+    build:
+      context: .
+    image: nodejs-scope:1.0.0
+    command: "node /usr/src/app"
+    ports:
+     - "8888:8888"

@@ -5,7 +5,9 @@
             [ulvm.reader :as uread]
             [ulvm.runnable-envs :as renv]
             [ulvm.runners]
-            [cats.core :as m]))
+            [ulvm.func-utils :as futil]
+            [cats.core :as m]
+            [cats.monad.either :as e]))
 
 (declare ulvm-compile
          build-scopes
@@ -32,9 +34,16 @@
    prj
    (get-in prj [:entities ::ucore/scopes])))
 
+(defn- build-scope-with-renv
+  "Builds a scope given a runnable env"
+  [prj scope-name scope-ent renv]
+  (-> prj
+      (renv/launch renv)
+      (renv/invoke-ideal-flow renv :org.ulvm.scope/write-dependencies {})))
+
 (defn- build-scope
   "Builds a scope"
   [proj scope-name scope-ent]
-  (let [{renv-prj :prj, renv :el} (uprj/deref-runnable-env proj scope-ent)
-        launched-prj (m/fmap #(renv/launch renv-prj %) renv)]
-    launched-prj))
+  (let [{prj :prj, renv :el} (uprj/deref-runnable-env proj scope-ent)
+        built-prj                 (m/fmap #(build-scope-with-renv prj scope-name scope-ent %) renv)]
+    built-prj))

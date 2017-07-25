@@ -64,3 +64,11 @@
         :fn   (fn [{args :args ret :ret}]
                 (or (= ret (:not-found args))
                     (e/either? ret))))
+
+(defn opt-either
+  "If x is nil, return a left of missing.
+   Else, return a right of x"
+  [x missing]
+  (if (some? x)
+    (e/right x)
+    (e/left missing)))

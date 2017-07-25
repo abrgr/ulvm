@@ -7,7 +7,8 @@
             [ulvm.func-utils :as futil]
             [cats.monad.either :as e]
             [cats.core :as m])
-  (:refer-clojure :exclude [get set]))
+  (:refer-clojure :rename {get core-get
+                           set core-set}))
 
 (declare get-runnable-env-rep
          scope-with-results
@@ -243,11 +244,6 @@
                      :value su/any)
         :ret ::project)
 
-(defn- is-env-ref
-  [x]
-  (and (list? x)
-       (= (first x) 'ulvm.core/from-env)))
-
 (defn- any-zip
   "Zipper for arbitrary builtin data structures"
   [root]
@@ -266,6 +262,44 @@
        :else children))
    root))
 
+(defn- invocation-of
+  "Predicate returning whether x is a form
+   representing an invocation of the function
+   identified by symbol s."
+  [x s]
+  (and (seq? x)
+       (= (first x) s)))
+
+(defn replace-in-tree
+  [prj f next]
+  (loop [loc (any-zip f)]
+    (if (z/end? loc)
+      (e/right (z/root loc))
+      (let [n (next (z/node loc))]
+        (cond
+          (contains? n :return)
+            (:return n)
+          (contains? n :replace-with)
+            (recur (z/replace loc (:replace-with n)))
+          :else (recur (z/next loc)))))))
+
+(defn selective-eval
+  "Given a form that contains sub-forms like
+   (ulvm.core/eval (...)),
+   returns a form with all eval invocations
+   replaced with their values"
+  [prj f]
+  (replace-in-tree
+    prj
+    f
+    #(if (invocation-of % 'ulvm.core/eval)
+      {:replace-with (eval (second %))})))
+
+(s/fdef selective-eval
+        :args (s/cat :prj  ::project
+                     :form su/any)
+        :ret (su/either-of? su/any su/any))
+
 (defn- resolve-env-ref
   [prj ctx node]
   (let [val (get-ctx-env prj ctx (rest node))]
@@ -279,22 +313,49 @@
    returns a form with all from-env invocations
    replaced with their values"
   [prj ctx f]
-  (loop [loc (any-zip f)]
-    (let [node (z/node loc)]
-      (if (z/end? loc)
-        (e/right (z/root loc))
-        (if (is-env-ref node)
-          (let [val (resolve-env-ref prj ctx node)]
-            (if (e/left? val)
-              val
-              (recur (z/replace loc val))))
-          (recur (z/next loc)))))))
+  (replace-in-tree
+    prj
+    f
+    #(if (invocation-of % 'ulvm.core/from-env)
+      (let [val (resolve-env-ref prj ctx %)]
+        (if (e/left? val)
+          {:return val}
+          {:replace-with val})))))
 
 (s/fdef resolve-env-refs
         :args (s/cat :prj  ::project
                      :ctx  sequential?
                      :form su/any)
         :ret (su/either-of? su/any su/any))
+
+(defn apply-bindings
+  "Given a form that contains sub-forms that are
+   symbol keys in the bindings map, replaces the
+   references with their values"
+  [prj bindings f]
+  (replace-in-tree
+    prj
+    f
+    #(if (and (symbol? %) (contains? bindings %))
+      {:replace-with (core-get bindings %)})))
+
+(s/fdef apply-bindings
+        :args (s/cat :prj  ::project
+                     :bindings map?
+                     :form su/any)
+        :ret (su/either-of? su/any su/any))
+
+(defn eval-in-ctx
+  "Resolves environment references and evaluates
+   configuration in the provided context"
+  ([prj ctx bindings cfg]
+    (futil/mlet e/context
+                [bound    (apply-bindings prj bindings cfg)
+                 de-refed (resolve-env-refs prj ctx bound)
+                 evaled   (selective-eval prj de-refed)]
+                (e/right evaled)))
+  ([prj ctx cfg]
+    (eval-in-ctx prj ctx {} cfg)))
 
 (defn- get-rel-name
   "Runnable env loader name from runnable env ref"
