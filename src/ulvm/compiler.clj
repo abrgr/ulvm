@@ -6,6 +6,7 @@
             [ulvm.runnable-envs :as renv]
             [ulvm.runners]
             [ulvm.func-utils :as futil]
+            [ulvm.env-keypaths :as k]
             [cats.core :as m]
             [cats.monad.either :as e]))
 
@@ -37,9 +38,12 @@
 (defn- build-scope-with-renv
   "Builds a scope given a runnable env"
   [prj scope-name scope-ent renv]
-  (-> prj
-      (renv/launch renv)
-      (renv/invoke-ideal-flow renv :org.ulvm.scope/write-dependencies {})))
+  (uprj/set-env
+    prj
+    (k/scope-deps-keypath scope-name)
+    (-> prj
+        (renv/launch renv)
+        (renv/invoke-ideal-flow renv :org.ulvm.scope/write-dependencies {}))))
 
 (defn- build-scope
   "Builds a scope"

@@ -4,6 +4,7 @@
             [ulvm.spec-utils :as su]
             [ulvm.project :as uprj]
             [ulvm.func-utils :as futil]
+            [ulvm.env-keypaths :as k]
             [clojure.spec :as s]
             [cats.core :as m]
             [cats.monad.either :as e]))
@@ -13,20 +14,13 @@
          invoke-flow
          invoke-ideal-flow)
 
-(defn- artifact-env-keypath
-  [artifact-loader]
-  (let [id   (or (::ucore/builtin-artifact-loader-name artifact-loader)
-                 (::ucore/runnable-env-ref artifact-loader))
-        desc (::ucore/artifact-descriptor artifact-loader)]
-    [:artifacts {id desc}]))
-
 (defn- set-loaded-artifact
   [prj artifact-loader artifact-info]
-  (uprj/set-env prj (artifact-env-keypath artifact-loader) artifact-info))
+  (uprj/set-env prj (k/artifact-env-keypath artifact-loader) artifact-info))
 
 (defn- get-loaded-artifact
   [prj artifact-loader]
-  (uprj/get-env prj (artifact-env-keypath artifact-loader)))
+  (uprj/get-env prj (k/artifact-env-keypath artifact-loader)))
 
 (defmulti builtin-load-artifact
   "Retrieve an artifact with a builtin loader"
@@ -88,17 +82,11 @@
                      :artifact-loader ::ucore/artifact-loader)
         :ret ::uprj/project)
 
-(defn- run-scope-keypath
-  ([]
-    [:runs :scope])
-  ([scope-name]
-    (conj (run-scope-keypath) scope-name)))
-
 (defn- run-artifact
   [prj keypath artifact-loader runner]
   (uprj/set-env prj keypath
                 (futil/mlet e/context
-                            [resolved-runner (uprj/eval-in-ctx prj (artifact-env-keypath artifact-loader) runner)
+                            [resolved-runner (uprj/eval-in-ctx prj (k/artifact-env-keypath artifact-loader) runner)
                              run-result      (uprj/run prj artifact-loader resolved-runner)]
                             (e/right run-result))))
 
@@ -107,7 +95,7 @@
   (let [artifact-loader (::ucore/artifact-loader runnable-scope)
         runner          (::ucore/runner runnable-scope)
         artifact-prj    (get-artifact-if-needed prj artifact-loader)]
-    (run-artifact artifact-prj (run-scope-keypath scope-name) artifact-loader runner)))
+    (run-artifact artifact-prj (k/run-scope-keypath scope-name) artifact-loader runner)))
 
 (defn launch
   "Launches a runnable environment, returning an updated project"
@@ -138,10 +126,10 @@
   [prj re-rep flow-name params]
   (futil/mlet e/context
               [runner          (get-in re-rep [::ucore/exported-flows flow-name ::ucore/runner])
-               ctx             (run-scope-keypath)
+               ctx             (k/run-scope-keypath)
                resolved-runner (uprj/eval-in-ctx prj ctx {'*params* params} runner)
                run-result      @(uprj/run prj ctx resolved-runner)]
-    prj))
+    (e/right run-result)))
 
 (s/fdef invoke-flow
         :args (s/cat :prj ::uprj/project
@@ -172,6 +160,6 @@
                      :re-rep ::ucore/runnable-env
                      :ideal-flow-name keyword?
                      :params map?)
-        :ret ::uprj/project)
+        :ret (su/either-of? su/any su/any))
 
 (load "artifact_loaders/docker_hub")

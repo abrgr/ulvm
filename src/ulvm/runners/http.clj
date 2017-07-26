@@ -8,7 +8,7 @@
 (defmethod uprj/run :ulvm.runners/http
   [prj ctx runner]
   (let [desc                (::ucore/runner-descriptor runner)
-        acceptable-statuses (:acceptable-status-codes desc)]
+        acceptable-statuses (:acceptable-statuses desc)]
     (http/request desc
                   (fn [{:keys [status body error]}]
                     (cond
