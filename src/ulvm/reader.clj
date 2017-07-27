@@ -46,7 +46,7 @@
         entity-type (:ulvm.core/type (meta (first (vals entity-by-name))))]
     {entity-type entity-by-name}))
 
-(defn- edn-seq
+(defn edn-seq
   "Reads all forms in an edn stream, returning a lazy seq"
   [stream]
   (lazy-seq (if-let [form (edn/read {:eof nil} stream)]
