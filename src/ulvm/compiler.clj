@@ -35,6 +35,14 @@
    prj
    (get-in prj [:entities ::ucore/scopes])))
 
+(defn- scope-mod-descs-by-name
+  [scope-ent]
+  (->> (::ucore/modules scope-ent)
+       (map
+        (fn [[k v]]
+          [k (::ucore/mod-descriptor v)]))
+       (into {})))
+
 (defn- build-scope-with-renv
   "Builds a scope given a runnable env"
   [prj scope-name scope-ent renv]
@@ -43,7 +51,10 @@
     (k/scope-deps-keypath scope-name)
     (-> prj
         (renv/launch renv)
-        (renv/invoke-ideal-flow renv :org.ulvm.scope/write-dependencies {}))))
+        (renv/invoke-ideal-flow
+          renv
+          :org.ulvm.scope/write-dependencies
+          (scope-mod-descs-by-name scope-ent)))))
 
 (defn- build-scope
   "Builds a scope"
