@@ -7,5 +7,5 @@
 
 (t/deftest compiler-test
   (st/instrument (st/instrumentable-syms 'ulvm))
-  (let [example-dir (.getCanonicalPath (io/file (io/as-file ".") "examples"))]
+  (let [example-dir (.getCanonicalPath (io/file (io/as-file ".") "examples" "toy"))]
     (print (c/ulvm-compile example-dir))))

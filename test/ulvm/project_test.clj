@@ -35,7 +35,7 @@
 
     (ulvm/defflow :simple []
       ; this flow's result has g as its error value and c as its default return value
-      {:err g, :ret c}
+      {:ulvm.core/output-descriptor {:err g, :ret c}}
       ; invoke module A in scope-1 with no args, result is named 'a
       ((:A scope-1) {} :as a)
       ; invoke module B in scope-2 with arg-1 set to the default return of a, result is named 'b
@@ -49,8 +49,7 @@
 
     (ulvm/defflow :err-handling []
       ; this flow's result has g as its error value and c as its default return value
-      {:err g,
-       :ret c}
+      {:ulvm.core/output-descriptor {:err g, :ret c}}
       ; invoke module A in scope-1 with no args, result is named 'a
       ((:A scope-1) {} :as a)
       ((:match-result scope-1) {:*default* :result-a (((:B scope-1) {:the-val result-a} :as v1)
@@ -59,7 +58,7 @@
 
     (ulvm/defflow :err-recovery []
       ; this flow's result has c as its default return value
-      {:ret c}
+      {:ulvm.core/output-descriptor {:ret c}}
       ; invoke module A in scope-1 with no args, result is named 'a
       ((:A scope-1) {} :as a)
       ((:recover-from scope-1) {:result a
@@ -73,7 +72,7 @@
              :mod-combinators {}
              :renv-loaders    {}
              :renvs           {}
-             :env             {::ulvm/project-root "examples"}}
+             :env             {::ulvm/project-root "examples/toy"}}
         {p :prj} (uprj/get prj :mod-combinators :mvn)]
     (is (= 1 (count (:mod-combinators p))))
     (is (every? #(e/right? (second %)) (:mod-combinators p)))

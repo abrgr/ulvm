@@ -30,9 +30,22 @@
            :name (s/? (s/cat :as #{:as}
                              :name symbol?))))))
 
+(s/def ::output-descriptor
+   (s/map-of keyword?
+             (or symbol?
+                 (s/coll-of (or symbol?
+                                (s/cat :sub-value keyword?
+                                       :value     symbol?))))))
+  
+(s/def ::flow-initializers
+  (s/map-of symbol? ::flow-invocations?))
+
+(s/def ::flow-config
+  (s/keys :opt [::output-descriptor ::flow-initializers]))
+
 (s/def ::flow?
   (s/spec
-   (s/cat :output-descriptor (s/map-of keyword? symbol?)
+   (s/cat :config      ::flow-config
           :invocations ::flow-invocations?)))
 
 (s/def ::flows
@@ -70,8 +83,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Scope Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(s/def ::parent-scope keyword?)
+
 (s/def ::scope?
-  (s/keys :req [::runnable-env-ref] :opt [::modules ::init ::config]))
+  (s/keys :req [::runnable-env-ref] :opt [::parent-scope ::modules ::init ::config]))
 
 (s/def ::scopes
   (s/map-of keyword? ::scope?))

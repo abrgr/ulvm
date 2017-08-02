@@ -1,0 +1,114 @@
+(ulvm.core/defrunnableenvloader :http
+  {:ulvm.core/runnable-env-ref
+   {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
+    :ulvm.core/runnable-env-descriptor {:path "re-loaders/http.ulvm"}}})
+
+(ulvm.core/defmodcombinator :nop
+  "No-op combinator"
+  {:ulvm.core/runnable-env-ref
+   {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
+    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/no-op.ulvm"}}})
+
+(ulvm.core/defmodcombinator :react-component
+  "React component combinator"
+  {:ulvm.core/runnable-env-ref
+   {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
+    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/rect-component.ulvm"}}})
+
+(ulvm.core/defscope :db
+  "Database for storing todos"
+  {:ulvm.core/runnable-env-ref
+   {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
+    :ulvm.core/runnable-env-descriptor {:path "scopes/mysql.ulvm"}}
+   ; TODO: the db module should actually be transparently provided by the scope and
+   ; should not be defined here
+   :ulvm.core/modules {:db {:ulvm.core/mod-combinator-name :nop
+                            :ulvm.core/mod-descriptor {}}}
+   :ulvm.core/config {
+     :databases {
+       :todo {
+         :tables {
+           :users {
+             :id       {:type :biginteger, :attrs #{:primary-key :auto-increment}}
+             :username {:type :varchar, :len 255}
+             :password {:type :char, :len 40}
+           }
+           :todo {
+             :id      {:type :biginteger, :attrs #{:primary-key :auto-increment}}
+             :user_id {:type :biginteger, :fk {:users :id}}
+             :text    {:type :varchar, :len 255}
+             :status  {:type :enum, :enum-vals #{:todo :done :deleted}}
+           }}}}}})
+
+(ulvm.core/defscope :client
+  "Todo client"
+  {:ulvm.core/runnable-env-ref
+   {:ulvm.core/builtin-runnable-env-loader-name :re-loaders/project-file
+    :ulvm.core/runnable-env-descriptor {:path "scopes/react-redux.ulvm"}}
+   :ulvm.core/modules {:app {:ulvm.core/mod-combinator-name :react-component
+                             :ulvm.core/mod-descriptor {:local-filename "client/react-components/app"}}}})
+   ; TODO: init should render the app
+
+(ulvm.core/defscope :todo-svc-container
+  "Container for todo-svc"
+  {:ulvm.core/runnable-env-ref
+   {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
+    :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs-docker"}}
+   :ulvm.core/config {
+     :image-name (ulvm.core/eval (str "todo-svc:" (ulvm.core/from-env :todo-svc-version)))}})
+
+(ulvm.core/defscope :todo-svc
+  "Todo todo-svc"
+  {:ulvm.core/runnable-env-ref
+   {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
+    :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs.ulvm"}}
+   :ulvm.core/parent-scope todo-svc-container
+   :ulvm.core/modules {:auth-middleware   {:ulvm.core/mod-combinator-name :js-sync
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/middleware/auth"}}
+                       :todo-validator    {:ulvm.core/mod-combinator-name :js-sync
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/validators/todo"}}
+                       :login-validator   {:ulvm.core/mod-combinator-name :js-sync
+                                           :ulvm.core/mod-descriptor {:local-filesystem "todo-svc/validators/login"}}
+                       :route             {:ulvm.core/mod-combinator-name :js-route-handler
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/route"}}
+                       :mount-middleware  {:ulvm.core/mod-combinator-name :js-sync
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/mount-middleware"}}
+                       :express           {:ulvm.core/mod-combinator-name :js-sync
+                                           :ulvm.core/mod-descriptor {:npm "express"}}
+                       :json-body-parser  {:ulvm.core/mod-combinator-name :js-sync
+                                           :ulvm.core/mod-descriptor {:npm "body-parser", :prop "json"}}
+                       :listen            {:ulvm.core/mod-combinator-name :js-sync
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/listen"}}
+                       :env               {:ulvm.core/mod-combinator-name :js-sync
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/env"}}}
+   :init [(express          {} :as app)
+          (json-body-parser {} :as json-middleware) ; TODO: would be nice not to name *everything*
+          (mount-middleware {:app app, :middleware json-middleware})
+          ; TODO: move routes to their flow initializers
+          (env              {:var "PORT"} :as port) ; TODO: there is a nicer way to handle this
+          (listen           {:app app, :port port})]})
+
+(ulvm.core/defflow :create-session [req]
+  {:ulvm.core/output-descriptor {:auth-err [(:err authorized-login)]
+                       :err      [(:err valid-login) (:err stored-session)]
+                       :success  session-response}
+   :ulvm.core/flow-initializers {todo-svc [(route {:app    (:app todo-svc)
+                                         :method :post
+                                         :path   "/sessions"
+                                         :flow   *this-flow*
+                                         :responses {
+                                           :success  {:status 200, :type :json}
+                                           :auth-err {:status 402, :type :json}
+                                           :err      {:status 500, :type :json}
+                                         }})]}}
+  ((:login-validator todo-svc) {:session (:body req)}                :as valid-login)
+  ((:authorize-login todo-svc) {:username (:username valid-login)
+                              :password (:password valid-login)}   :as authorized-login)
+  ((:create-token todo-svc)    {}                                    :as session-token
+                                                                   :after [authorized-login])
+  ((:store-session todo-svc)   {:username (:username authorized-login)
+                              :token    :session-token
+                              :data     {}}                        :as stored-session)
+  ((:make-session-response todo-svc)
+                             {:token :session-token}               :as session-response
+                                                                   :after [stored-session])
