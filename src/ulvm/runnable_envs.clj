@@ -114,12 +114,13 @@
 
 (defn stop
   "Stops a runnable environment"
-  [re-rep env]
+  [prj re-rep]
   (e/left nil))
 
 (s/fdef stop
-        :args (s/cat :re-rep ::ucore/runnable-env)
-        :ret (su/either-of? su/any map?))
+        :args (s/cat :prj ::uprj/project
+                     :re-rep ::ucore/runnable-env)
+        :ret ::uprj/project)
 
 (defn invoke-flow
   "Invokes the named flow with the given parameters"

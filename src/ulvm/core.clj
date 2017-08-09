@@ -86,7 +86,8 @@
 (s/def ::parent-scope keyword?)
 
 (s/def ::scope?
-  (s/keys :req [::runnable-env-ref] :opt [::parent-scope ::modules ::init ::config]))
+  (s/keys :req [::runnable-env-ref]
+          :opt [::parent-scope ::modules ::init ::config]))
 
 (s/def ::scopes
   (s/map-of keyword? ::scope?))

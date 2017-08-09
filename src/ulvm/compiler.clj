@@ -7,6 +7,7 @@
             [ulvm.runners]
             [ulvm.func-utils :as futil]
             [ulvm.env-keypaths :as k]
+            [ulvm.scopes :as scopes]
             [cats.core :as m]
             [cats.monad.either :as e]))
 
@@ -35,30 +36,25 @@
    prj
    (get-in prj [:entities ::ucore/scopes])))
 
-(defn- scope-mod-descs-by-name
+(defn- scope-mod-descs
   [scope-ent]
   (->> (::ucore/modules scope-ent)
        (map
         (fn [[k v]]
-          [k (::ucore/mod-descriptor v)]))
-       (into {})))
-
-(defn- build-scope-with-renv
-  "Builds a scope given a runnable env"
-  [prj scope-name scope-ent renv]
-  (uprj/set-env
-    prj
-    (k/scope-deps-keypath scope-name)
-    (-> prj
-        (renv/launch renv)
-        (renv/invoke-ideal-flow
-          renv
-          :org.ulvm.scope/write-dependencies
-          (scope-mod-descs-by-name scope-ent)))))
+          (::ucore/mod-descriptor v)))
+       (into #{})))
 
 (defn- build-scope
   "Builds a scope"
   [proj scope-name scope-ent]
-  (let [{prj :prj, renv :el} (uprj/deref-runnable-env proj scope-ent)
-        built-prj                 (m/fmap #(build-scope-with-renv prj scope-name scope-ent %) renv)]
-    built-prj))
+  (futil/mlet e/context
+              [res   (scopes/make-scope proj scope-ent)
+               scope (:scope res)
+               prj   (:prj res)]
+              (uprj/set-env
+                prj
+                (k/scope-deps-keypath scope-name)
+                (scopes/write-dependencies
+                  scope
+                  prj
+                  (scope-mod-descs scope-ent))))) ; TODO: add implicit modules

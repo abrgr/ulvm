@@ -10,5 +10,5 @@
   [prj ctx runner]
   (futil/mlet e/context
               [create-result (docker/create-container prj (::ucore/runner-descriptor runner))
-               create-data (docker/get-container-output prj (:container-id create-result))]
+               create-data {:todo "figure out log data"}] ; TODO: (docker/get-container-output prj (:container-id create-result))]
               (e/right (merge create-result {:result create-data}))))

@@ -72,3 +72,10 @@
   (if (some? x)
     (e/right x)
     (e/left missing)))
+
+(defn with-fallback
+  [val fallback]
+  (m/bimap
+    (fn [_] fallback)
+    identity
+    val))
