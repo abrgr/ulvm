@@ -55,7 +55,7 @@
    {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
     :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs-docker"}}
    :ulvm.core/config {
-     :image-name (ulvm.core/eval (str "todo-svc:" (ulvm.core/from-env :todo-svc-version)))}})
+     :image-name (ulvm.core/eval (str "todo-svc:" (ulvm.core/from-env :todo-svc :version)))}})
 
 (ulvm.core/defscope :todo-svc
   "Todo todo-svc"
@@ -63,8 +63,8 @@
    {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
     :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs.ulvm"}}
    :ulvm.core/parent-scope todo-svc-container
-   :ulvm.core/modules {:auth-middleware   {:ulvm.core/mod-combinator-name :js-sync
-                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/middleware/auth"}}
+   :ulvm.core/modules {:auth-validator    {:ulvm.core/mod-combinator-name :js-sync
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/validators/auth"}}
                        :todo-validator    {:ulvm.core/mod-combinator-name :js-sync
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/validators/todo"}}
                        :login-validator   {:ulvm.core/mod-combinator-name :js-sync
@@ -88,27 +88,73 @@
           (env              {:var "PORT"} :as port) ; TODO: there is a nicer way to handle this
           (listen           {:app app, :port port})]})
 
-(ulvm.core/defflow :create-session [req]
+(ulvm.core/defflow :create-session [session username password]
   {:ulvm.core/output-descriptor {:auth-err [(:err authorized-login)]
-                       :err      [(:err valid-login) (:err stored-session)]
-                       :success  session-response}
-   :ulvm.core/flow-initializers {todo-svc [(route {:app    (:app todo-svc)
-                                         :method :post
-                                         :path   "/sessions"
-                                         :flow   *this-flow*
-                                         :responses {
-                                           :success  {:status 200, :type :json}
-                                           :auth-err {:status 402, :type :json}
-                                           :err      {:status 500, :type :json}
-                                         }})]}}
+                                 :err      [(:err valid-login) (:err stored-session)]
+                                 :success  session-response}
+   :ulvm.core/transformer-modules {
+    :http-send    {:ulvm.core/mod-combinator-name :js-promise
+                   :ulvm.core/mod-descriptor {:local-filesname "todo-svc/transformers/http-send"}}
+    :http-receive {:ulvm.core/mod-combinator-name :js-route-handler
+                   :ulvm.core/mod-descriptor {:local-filesname "todo-svc/transformers/http-send"}
+                   :ulvm.core/config {
+                     :method :post
+                     :path (ulvm.core/from-env :todo-svc :paths :sessions)
+                     :mapping {
+                       :session  [:headers (ulvm.core/from-env :todo-svc :headers :session)]
+                       :username [:body :username]
+                       :password [:body :password]}}}}
+   :ulvm.core/transformers [
+     ; http-client
+     (http-send {:method  :post
+                 :host    *server-host*
+                 :path    (ulvm.core/from-env :todo-svc :paths :sessions)
+                 :body    {:username username, :password password}
+                 :headers {(ulvm.core/from-env :todo-svc :headers :session) session}}
+                :on :client
+                :if (and (contains *scope-tags* :js) (not (= *scope* todo-svc))))
+     (http-receive {}
+                   :on :server
+                   :if (not (= *calling-scope* todo-svc))
+                   :initialized-by [(route {:app     (:app todo-svc)
+                                            :method  :post
+                                            :path    "/sessions"
+                                            :handler http-receive})])]
   ((:login-validator todo-svc) {:session (:body req)}                :as valid-login)
   ((:authorize-login todo-svc) {:username (:username valid-login)
-                              :password (:password valid-login)}   :as authorized-login)
+                                :password (:password valid-login)}   :as authorized-login)
   ((:create-token todo-svc)    {}                                    :as session-token
-                                                                   :after [authorized-login])
+                                                                     :after [authorized-login])
   ((:store-session todo-svc)   {:username (:username authorized-login)
-                              :token    :session-token
-                              :data     {}}                        :as stored-session)
+                                :token    :session-token
+                                :data     {}}                        :as stored-session)
   ((:make-session-response todo-svc)
-                             {:token :session-token}               :as session-response
+                               {:token :session-token}               :as session-response
+                                                                     :after [stored-session])
+
+(ulvm.core/defflow :create-todo [req]
+  {:ulvm.core/output-descriptor {:auth-err (:err valid-auth)
+                                 :bad-req  (:err valid-todo)
+                                 :err      []
+                                 :success  session-response}
+   :ulvm.core/flow-initializers {todo-svc [(route {:app    (:app todo-svc)
+                                                   :method :post
+                                                   :path   "/todos"
+                                                   :flow   *this-flow*
+                                                   :responses {
+                                                     :success  {:status 200, :type :json}
+                                                     :auth-err {:status 402, :type :json}
+                                                     :bad-req  {:status 401, :type :json}
+                                                     :err      {:status 500, :type :json}}})]}}
+  ((:auth-validator todo-svc)  {:req req}                            :as valid-auth)
+  ((:todo-validator todo-svc)  {:todo (:body req)}                   :as valid-todo)
+  ((:authorize-login todo-svc) {:username (:username valid-login)
+                                :password (:password valid-login)}   :as authorized-login)
+  ((:create-token todo-svc)    {}                                    :as session-token
+                                                                     :after [authorized-login])
+  ((:store-session todo-svc)   {:username (:username authorized-login)
+                                :token    :session-token
+                                :data     {}}                        :as stored-session)
+  ((:make-session-response todo-svc)
+                               {:token :session-token}               :as session-response
                                                                    :after [stored-session])

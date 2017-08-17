@@ -14,6 +14,23 @@
     ::runners})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Module Stuff
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(s/def ::mod-combinator-name keyword?)
+
+(s/def ::mod-descriptor map?)
+
+(s/def ::module
+  (s/keys
+   :req [::mod-combinator-name
+         ::mod-descriptor]
+   :opt [::config
+         ::transformer-modules
+         ::transformers]))
+
+(s/def ::modules (s/map-of keyword? ::module))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Flow Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::flow-invocation-module?
@@ -22,13 +39,13 @@
                                 :scope symbol?))
    :local-module symbol?))
 
+(s/def ::flow-invocation
+  (s/cat :invocation-module ::flow-invocation-module?
+         :args (s/? map?)
+         :name (s/? (s/cat :as #{:as}
+                           :name symbol?))))
 (s/def ::flow-invocations?
-  (s/+
-   (s/spec
-    (s/cat :invocation-module ::flow-invocation-module?
-           :args (s/? map?)
-           :name (s/? (s/cat :as #{:as}
-                             :name symbol?))))))
+  (s/+ (s/spec ::flow-invocation)))
 
 (s/def ::output-descriptor
    (s/map-of keyword?
@@ -40,8 +57,29 @@
 (s/def ::flow-initializers
   (s/map-of symbol? ::flow-invocations?))
 
+(s/def ::transformer-modules ::modules)
+
+(s/def ::transformer-args
+  (s/*
+    (s/or :on             (s/cat :_  #{:on}
+                                 :val #{:client :server})
+          :if             (s/cat :_  #{:if}
+                                 :val list?)
+          :initialized-by (s/cat :_   #{:initialized-by}
+                                 :val ::flow-invocations?))))
+
+(s/def ::transformer
+  (s/cat :invocation       ::flow-invocaton
+         :transformer-args ::transformer-args))
+
+(s/def ::transformers
+  (s/coll-of ::transformer))
+
 (s/def ::flow-config
-  (s/keys :opt [::output-descriptor ::flow-initializers]))
+  (s/keys :opt [::output-descriptor
+                ::flow-initializers
+                ::transformer-modules
+                ::transformers]))
 
 (s/def ::flow?
   (s/spec
@@ -116,21 +154,6 @@
         :ret ::scopes
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:scope args))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Module Stuff
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(s/def ::module
-  (s/keys
-   :req [::mod-combinator-name
-         ::mod-descriptor]
-   :opt [::config]))
-
-(s/def ::mod-combinator-name keyword?)
-
-(s/def ::mod-descriptor map?)
-
-(s/def ::modules (s/map-of keyword? ::module))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Combinator Stuff
