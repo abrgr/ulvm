@@ -94,9 +94,11 @@
                                  :success  session-response}
    :ulvm.core/transformer-modules {
     :http-send    {:ulvm.core/mod-combinator-name :js-promise
-                   :ulvm.core/mod-descriptor {:local-filesname "todo-svc/transformers/http-send"}}
+                   :ulvm.core/mod-descriptor {:local-filename "todo-svc/transformers/http-send"}}
     :http-receive {:ulvm.core/mod-combinator-name :js-route-handler
-                   :ulvm.core/mod-descriptor {:local-filesname "todo-svc/transformers/http-send"}
+                   :ulvm.core/macro-provider {
+                     :ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
+                     :ulvm.core/runnable-env-descriptor {:path "inline-module-macros/http-receive.ulvm"}}
                    :ulvm.core/config {
                      :method :post
                      :path (ulvm.core/from-env :todo-svc :paths :sessions)

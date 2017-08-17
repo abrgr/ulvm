@@ -41,8 +41,14 @@ A "flow" is a logical call-graph, passing the outputs of some modules into the i
 ## Scopes
 Each "scope" is an artifact that ULVM will produce.  For example, one scope may be a nodejs program, whose artifact is a set of nodejs source files that ULVM produces based upon the modules in the flows that were declared to exist within that nodejs scope.  Scopes may be nested such that the nodejs scope may exist within a node docker image scope (producing a directory with a Dockerfile that builds the node code into a docker image), which exists within an AWS Auto Scaling cluster scope (producing a CloudFormation template that would launch the docker image), that exists within an AWS VPC scope (producing a CloudFormation template that sets up the required AWS resources and networking permissions, refering to the inner Auto Scaling template).  Scopes may be seen as templates from which one or more scope instances will be created at runtime, just as source code is a template from which one or more processes will be created at runtime.
 
+## Modules
+A module is a logical function, which is ideally developed in isolation, in the target language.  All ULVM knows about modules is some location information (where can the scope get the code for this thing?), what inputs it has (all parameters are named), and what logical outputs it has (an exception is an output, as is a pointer parameter, or the value passed to a callback).  ULVM also supports attaching configuration information to modules, which allows scopes to consume that metadata and enables our logic system (described below).  Modules also declare a module-combinator, which is responsible for generating an AST (specific to a given type of scope) that represents their invocation.
+
+## Macros
+We support two types of macros: inline module macros, which render a logical function that is invoked with a combinator like any other--they have dynamic function *definitions*--, and module combinator macros, which modify the invocation site of a module--they have dynamic function invocations.  A module that is capable of extracting properties from a JSON map and passing them as arguments to another function would be an inline module macro whereas a module that represents a pattern match or if statement would be a module combinator macro.
+
 ## Logic
-ULVM is untyped in the traditional sense but...  ULVM exposes an interface for making arbitrary logical assertions, which are currently checked by the [Z3 Theorem Prover](https://github.com/Z3Prover/z3).  Types, subtypes, etc. may easily be modeled under this system, as can much higher-level concerns like "this data must never leave this machine," "user input is not to be passed into this scope or module without first having been sanitized," or "at some point prior to reaching this module, this flow must have passed through an authorization checking module."
+ULVM is untyped in the traditional sense but...  ULVM exposes an interface for making arbitrary logical assertions, which are currently checked by the [Z3 Theorem Prover](https://github.com/Z3Prover/z3).  Types, subtypes, etc. may easily be modeled under this system, as can much higher-level concerns like "this data must never leave this machine," "user input is not to be passed into this scope or module without first having been sanitized," "at some point prior to reaching this module, this flow must have passed through an authorization checking module," or "this module will only add money values in the same currency."
 
 # What about state?
 
@@ -53,10 +59,6 @@ Flows are stateless.  A flow is analogous to a function (WITHOUT any static vari
 # The open compiler
 
 ULVM is designed as an open system.  It does not ship with support for all imaginable scopes, all languages, or even all methods of gathering dependencies.  It enables developers to craft components of the compiler in isolation to suit their needs and refer to them from ulvm files.
-
-## Loaders
-
-Loaders are responsible for gathering dependencies at compile time.
 
 ## Scope handlers
 

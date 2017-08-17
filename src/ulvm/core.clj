@@ -14,16 +14,30 @@
     ::runners})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Runnable Environment Ref Stuff
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(s/def ::runnable-env-descriptor map?)
+
+(s/def ::runnable-env-ref
+  (s/keys
+   :req [(or ::builtin-runnable-env-loader-name
+             ::runnable-env-loader-name)
+         ::runnable-env-descriptor]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Module Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::mod-combinator-name keyword?)
 
 (s/def ::mod-descriptor map?)
 
+(s/def ::macro-provider ::runnable-env-ref)
+
 (s/def ::module
   (s/keys
    :req [::mod-combinator-name
-         ::mod-descriptor]
+         (or ::mod-descriptor
+             ::macro-provider)]
    :opt [::config
          ::transformer-modules
          ::transformers]))
@@ -263,14 +277,6 @@
         :ret ::runnable-envs
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:runnable-env args))))
-
-(s/def ::runnable-env-descriptor map?)
-
-(s/def ::runnable-env-ref
-  (s/keys
-   :req [(or ::builtin-runnable-env-loader-name
-             ::runnable-env-loader-name)
-         ::runnable-env-descriptor]))
 
 (s/def ::runnable-env-loader
   (s/keys
