@@ -172,7 +172,7 @@
   (let [orig (get-in prj [type id])]
     (if (some? orig)
       {:prj prj, :el orig}
-      (let [make (maker-from-prj-type type)
+      (let [make    (maker-from-prj-type type)
             new-prj (make prj id entity)]
         {:prj new-prj
          :el (get-in new-prj [type id])}))))

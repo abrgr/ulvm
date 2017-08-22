@@ -55,18 +55,20 @@
 
 (s/def ::flow-invocation
   (s/cat :invocation-module ::flow-invocation-module?
-         :args (s/? map?)
-         :name (s/? (s/cat :as #{:as}
-                           :name symbol?))))
+         :args  (s/? map?)
+         :name  (s/? (s/cat :as #{:as}
+                            :name symbol?))
+         :after (s/? (s/cat :after #{:after}
+                            :names (s/coll-of symbol?)))))
+
 (s/def ::flow-invocations?
   (s/+ (s/spec ::flow-invocation)))
 
 (s/def ::output-descriptor
    (s/map-of keyword?
-             (or symbol?
-                 (s/coll-of (or symbol?
-                                (s/cat :sub-value keyword?
-                                       :value     symbol?))))))
+             (s/coll-of (s/or :result     symbol?
+                              :sub-result (s/cat :sub-value keyword?
+                                                 :value     symbol?)))))
   
 (s/def ::flow-initializers
   (s/map-of symbol? ::flow-invocations?))
@@ -75,15 +77,15 @@
 
 (s/def ::transformer-args
   (s/*
-    (s/or :on             (s/cat :_  #{:on}
-                                 :val #{:client :server})
-          :if             (s/cat :_  #{:if}
-                                 :val list?)
-          :initialized-by (s/cat :_   #{:initialized-by}
-                                 :val ::flow-invocations?))))
+    (s/alt :on             (s/cat :_   #{:on}
+                                  :val #{:client :server})
+           :if             (s/cat :_   #{:if}
+                                  :val list?)
+           :initialized-by (s/cat :_   #{:initialized-by}
+                                  :val (s/spec ::flow-invocations?)))))
 
 (s/def ::transformer
-  (s/cat :invocation       ::flow-invocaton
+  (s/cat :invocation       ::flow-invocation
          :transformer-args ::transformer-args))
 
 (s/def ::transformers
@@ -126,7 +128,7 @@
         :args (s/cat
                :name keyword?
                :description (s/? string?)
-               :args (s/spec (s/* keyword?))
+               :args (s/spec (s/* symbol?))
                :body ::flow?)
         :ret ::flows
         :fn (fn [{args :args ret :ret}]

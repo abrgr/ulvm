@@ -75,7 +75,9 @@
 
 (defn with-fallback
   [val fallback]
-  (m/bimap
-    (fn [_] fallback)
-    identity
-    val))
+  (->
+    (m/bimap
+      (fn [_] fallback)
+      identity
+      val)
+    (m/extract)))

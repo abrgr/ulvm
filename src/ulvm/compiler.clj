@@ -5,6 +5,7 @@
             [ulvm.reader :as uread]
             [ulvm.runnable-envs :as renv]
             [ulvm.runners]
+            [ulvm.re-loaders]
             [ulvm.func-utils :as futil]
             [ulvm.env-keypaths :as k]
             [ulvm.scopes :as scopes]
@@ -47,14 +48,16 @@
 (defn- build-scope
   "Builds a scope"
   [proj scope-name scope-ent]
-  (futil/mlet e/context
-              [res   (scopes/make-scope proj scope-ent)
-               scope (:scope res)
-               prj   (:prj res)]
-              (uprj/set-env
-                prj
-                (k/scope-deps-keypath scope-name)
-                (scopes/write-dependencies
-                  scope
+  (->
+    (futil/mlet e/context
+                [res   (scopes/make-scope proj scope-ent)
+                 scope (:scope res)
+                 prj   (:prj res)]
+                (uprj/set-env
                   prj
-                  (scope-mod-descs scope-ent))))) ; TODO: add implicit modules
+                  (k/scope-deps-keypath scope-name)
+                  (scopes/write-dependencies
+                    scope
+                    prj
+                    (scope-mod-descs scope-ent)))) ; TODO: add implicit modules
+    (futil/with-fallback proj)))
