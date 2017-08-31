@@ -105,23 +105,65 @@
                      :mapping {
                        :session  [:headers (ulvm.core/from-env :todo-svc :headers :session)]
                        :username [:body :username]
+                       :password [:body :password]}}}
+    :http-respond {:ulvm.core/mod-combinator-name :js-route-handler
+                   :ulvm.core/macro-provider {
+                     :ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
+                     :ulvm.core/runnable-env-descriptor {:path "inline-module-macros/http-receive.ulvm"}}
+                   :ulvm.core/config {
+                     :method :post
+                     :path (ulvm.core/from-env :todo-svc :paths :sessions)
+                     :mapping {
+                       :session  [:headers (ulvm.core/from-env :todo-svc :headers :session)]
+                       :username [:body :username]
                        :password [:body :password]}}}}
-   :ulvm.core/transformers [
-     ; http-client
-     (http-send {:method  :post
-                 :host    *server-host*
-                 :path    (ulvm.core/from-env :todo-svc :paths :sessions)
-                 :body    {:username username, :password password}
-                 :headers {(ulvm.core/from-env :todo-svc :headers :session) session}}
-                :on :client
-                :if (and (contains *scope-tags* :js) (not (= *scope* todo-svc))))
-     (http-receive {}
-                   :on :server
-                   :if (not (= *calling-scope* todo-svc))
-                   :initialized-by [(route {:app     (:app todo-svc)
-                                            :method  :post
-                                            :path    "/sessions"
-                                            :handler http-receive})])]}
+   :ulvm.core/transformers {
+     :send-http-request {
+       :when {
+         :phase :client-pre
+         :if    (and (contains *scope-tags* :js) (not (= *scope* todo-svc)))}
+       :do [
+         (http-send {:method  :post
+                     :host    *server-host*
+                     :path    (ulvm.core/from-env :todo-svc :paths :sessions)
+                     :body    {:username username, :password password}
+                     :headers {(ulvm.core/from-env :todo-svc :headers :session) session}})]}
+     :receive-http-request {
+       :when {
+         :phase :server-pre
+         :if (not (= *calling-scope* todo-svc))}
+       :do [
+         ; TODO: all server-pre transformers for a flow
+         ;       MUST be invoked by some out-of-flow
+         ;       process.  That is, they must all have
+         ;       an external initializer.
+         (http-receive {}
+                       :as http-response)
+         (map-get {:map (:headers http-receive)
+                   :key (ulvm.core/from-env :todo-svc :headers :session)}
+                  :as session)
+         (map-get {:map (:body http-receive)
+                   :key "username"}
+                  :as username)
+         (map-get {:map (:body http-receive)
+                   :key "password"}
+                  :as session)
+         (*invocation* {:session session
+                        :username username
+                        :password password})]}
+     :send-http-response {
+       :when {
+         :phase :server-post
+         :if (not (= *calling-scope* todo-svc))}
+       :do [
+         (http-respond {:res (:res http-receive)})]}}
+   :flow-initializers {
+     ; TODO: effectful initializer, not initializing a value
+     _ [
+       (route {:app     (:app todo-svc)
+               :method  :post
+               :path    "/sessions"
+               :handler (:send-http-response *transformers*)})]}}
   ((:login-validator todo-svc) {:session (:body req)}                :as valid-login)
   ((:authorize-login todo-svc) {:username (:username valid-login)
                                 :password (:password valid-login)}   :as authorized-login)

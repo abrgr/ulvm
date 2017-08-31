@@ -75,21 +75,24 @@
 
 (s/def ::transformer-modules ::modules)
 
-(s/def ::transformer-args
-  (s/*
-    (s/alt :on             (s/cat :_   #{:on}
-                                  :val #{:client :server})
-           :if             (s/cat :_   #{:if}
-                                  :val list?)
-           :initialized-by (s/cat :_   #{:initialized-by}
-                                  :val (s/spec ::flow-invocations?)))))
+(s/def ::phase
+  #{:client-pre :client-post :server-pre :server-post})
+
+(s/def ::if list?)
+
+(s/def ::when
+  (s/keys
+   :req-un [::phase ::if]))
+
+(s/def ::do
+  (s/spec ::flow-invocations?))
 
 (s/def ::transformer
-  (s/cat :invocation       ::flow-invocation
-         :transformer-args ::transformer-args))
+  (s/keys
+   :req-un [::when ::do]))
 
 (s/def ::transformers
-  (s/coll-of ::transformer))
+  (s/map-of keyword? ::transformer))
 
 (s/def ::flow-config
   (s/keys :opt [::output-descriptor

@@ -1,5 +1,22 @@
 function createSession(session, username, password) {
-  return "sessionToken";
+  return Promise.resolve("sessionToken");
+}
+
+function createSessionWrapper() {
+  httpReceive((httpReceive_headers, httpReceive_body, httpReceive_res) => {
+    const session = httpReceive_headers["session"];
+    const username = httpReceive_body["username"];
+    const password = httpReceive_body["password"];
+
+    const result = createSession(session, username, password);
+
+    httpRespond(httpReceive_res, result);
+  });
+
+}
+
+function httpReceive(req, res, cb) {
+  cb(req.headers, req.body, res);
 }
 
 function httpReceive(req, res) {
