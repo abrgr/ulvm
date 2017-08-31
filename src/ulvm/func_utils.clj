@@ -75,9 +75,13 @@
 
 (defn with-fallback
   [val fallback]
-  (->
-    (m/bimap
-      (fn [_] fallback)
-      identity
-      val)
-    (m/extract)))
+  (if (satisfies? p/Contextual val)
+    (c/with-context
+      (c/infer val)
+      (->
+        (m/bimap
+          (fn [_] fallback)
+          identity
+          val)
+        (m/extract)))
+    val))
