@@ -47,21 +47,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Flow Stuff
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(s/def ::flow-invocation-module?
+(s/def ::flow-invocation-module
   (s/alt
    :scope-module (s/spec (s/cat :module-name keyword?
                                 :scope symbol?))
    :local-module symbol?))
 
 (s/def ::flow-invocation
-  (s/cat :invocation-module ::flow-invocation-module?
+  (s/cat :invocation-module ::flow-invocation-module
          :args  (s/? map?)
-         :name  (s/? (s/cat :as #{:as}
+         :name  (s/? (s/cat :_    #{:as}
                             :name symbol?))
-         :after (s/? (s/cat :after #{:after}
+         :after (s/? (s/cat :_     #{:after}
                             :names (s/coll-of symbol?)))))
 
-(s/def ::flow-invocations?
+(s/def ::flow-invocations
   (s/+ (s/spec ::flow-invocation)))
 
 (s/def ::output-descriptor
@@ -71,7 +71,7 @@
                                                  :value     symbol?)))))
   
 (s/def ::flow-initializers
-  (s/map-of symbol? ::flow-invocations?))
+  (s/map-of symbol? ::flow-invocations))
 
 (s/def ::transformer-modules ::modules)
 
@@ -85,7 +85,7 @@
    :req-un [::phase ::if]))
 
 (s/def ::do
-  (s/spec ::flow-invocations?))
+  (s/spec ::flow-invocations))
 
 (s/def ::transformer
   (s/keys
@@ -100,13 +100,13 @@
                 ::transformer-modules
                 ::transformers]))
 
-(s/def ::flow?
+(s/def ::flow
   (s/spec
    (s/cat :config      ::flow-config
-          :invocations ::flow-invocations?)))
+          :invocations ::flow-invocations)))
 
 (s/def ::flows
-  (s/map-of keyword? ::flow?))
+  (s/map-of keyword? ::flow))
 
 (defmacro defflow
   "Define a flow"
@@ -132,7 +132,7 @@
                :name keyword?
                :description (s/? string?)
                :args (s/spec (s/* symbol?))
-               :body ::flow?)
+               :body ::flow)
         :ret ::flows
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:body args))))
@@ -142,16 +142,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::parent-scope keyword?)
 
-(s/def ::scope?
+(s/def ::scope
   (s/keys :req [::runnable-env-ref]
           :opt [::parent-scope ::modules ::init ::config]))
 
 (s/def ::scopes
-  (s/map-of keyword? ::scope?))
+  (s/map-of keyword? ::scope))
 
 (s/def ::config map?)
 
-(s/def ::init ::flow-invocations?)
+(s/def ::init ::flow-invocations)
 
 (defmacro defscope
   "Define a scope, which represents a build artifact, often serving as a container for code (e.g. a C++ or a NodeJS process) or an entity of the infrastructure (e.g. a cluster of machines)"
@@ -169,7 +169,7 @@
         :args (s/cat
                :name keyword?
                :description (s/? string?)
-               :scope ::scope?)
+               :scope ::scope)
         :ret ::scopes
         :fn (fn [{args :args ret :ret}]
               (= ((:name args) ret) (:scope args))))

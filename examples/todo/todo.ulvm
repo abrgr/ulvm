@@ -13,7 +13,7 @@
   "React component combinator"
   {:ulvm.core/runnable-env-ref
    {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
-    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/rect-component.ulvm"}}})
+    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/react-component.ulvm"}}})
 
 (ulvm.core/defscope :db
   "Database for storing todos"
@@ -53,7 +53,7 @@
   "Container for todo-svc"
   {:ulvm.core/runnable-env-ref
    {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
-    :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs-docker"}}
+    :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs-docker.ulvm"}}
    :ulvm.core/config {
      :image-name (ulvm.core/eval (str "todo-svc:" (ulvm.core/from-env :todo-svc :version)))}})
 

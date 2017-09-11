@@ -25,3 +25,10 @@
     [:scope-deps])
   ([scope-name]
     (conj (scope-deps-keypath) scope-name)))
+
+(defn build-scope-keypath
+  "Keypath for the result of building a scope"
+  ([]
+    [:build-scope])
+  ([scope-name]
+    (conj (build-scope-keypath) scope-name)))

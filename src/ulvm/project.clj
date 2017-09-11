@@ -398,3 +398,7 @@
                      :entity (s/keys :req [::ucore/runnable-env-ref]))
         :ret (s/keys :req-un [::prj
                               ::el]))
+
+(defn canonical-flow
+  [flow-ent]
+  (s/conform ::ucore/flow flow-ent))

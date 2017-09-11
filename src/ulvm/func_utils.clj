@@ -85,3 +85,11 @@
           val)
         (m/extract)))
     val))
+
+(defn recover-with
+  [val recovery-fn]
+  (if (satisfies? p/Contextual val)
+    (c/with-context
+      (c/infer val)
+      (e/branch-left val recovery-fn))
+    val))
