@@ -401,4 +401,4 @@
 
 (defn canonical-flow
   [flow-ent]
-  (s/conform ::ucore/flow flow-ent))
+  (with-meta (s/conform ::ucore/flow flow-ent) (meta flow-ent)))

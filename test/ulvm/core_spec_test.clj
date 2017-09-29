@@ -41,18 +41,18 @@
     {:ulvm.core/output-descriptor {:err [g], :ret [c]}}
     ; invoke module A in scope-1 with no args, result is named 'a
     ((:A scope-1) {} :as a)
-    ((:match-result scope-1) {:*default* :result-a (((:B scope-1) {:the-val result-a} :as v1)
-                                                    ((:C scope-1) {:val-1 result-a, :val-2 v1} :as c))
-                              :*err* :err-a (((:log-err scope-1) {:err err-a}) :as g)}))
+    ((:B scope-1) {:the-val a} :as v1)
+    ((:C scope-1) {:val-1 a, :val-2 v1} :as c)
+    ((:log-err scope-1) {:err (:err a)} :as g))
 
   (ulvm/defflow :err-recovery []
     ; this flow's result has c as its default return value
-    {:ulvm.core/output-descriptor {:ret [c]}}
+    {:ulvm.core/output-descriptor {:ret [c b]}}
     ; invoke module A in scope-1 with no args, result is named 'a
     ((:A scope-1) {} :as a)
-    ((:recover-from scope-1) {:result a
-                              :err-1 (((:log-err scope-1) {:err err-1})
-                                      ((:B scope-1) {} :as a))})))
+    ; log and b are calculated iff a returns an error
+    ((:log-err scope-1) {:err (:err a)} :as log)
+    ((:B scope-1) {} :as b :after log)))
 
 (defn runnable-env-examples []
   (ulvm.core/defrunnableenvloader :auth-http-re-loader

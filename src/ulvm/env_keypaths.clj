@@ -32,3 +32,12 @@
     [:build-scope])
   ([scope-name]
     (conj (build-scope-keypath) scope-name)))
+
+(defn build-flow-in-scope-keypath
+  "Keypath for the result of building a flow for a scope"
+  ([]
+    [:build-flow-in-scope])
+  ([scope-name]
+    (conj (build-flow-in-scope-keypath) scope-name))
+  ([scope-name flow-name]
+    (conj (build-flow-in-scope-keypath scope-name) flow-name)))

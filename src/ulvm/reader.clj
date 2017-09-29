@@ -48,6 +48,13 @@
 
 (defn edn-seq
   "Reads all forms in an edn stream, returning a lazy seq"
-  [stream]
-  (lazy-seq (if-let [form (edn/read {:eof nil} stream)]
-              (cons form (edn-seq stream)))))
+  ([stream]
+    (edn-seq stream 0))
+  ([stream form-count]
+    (lazy-seq (try
+                (if-let [form (edn/read {:eof nil} stream)]
+                  (cons form (edn-seq stream (inc form-count))))
+                (catch RuntimeException e
+                  ; TODO: get a real reader that provides sensible errors
+                  (do (println "Error reading stream at form:" form-count)
+                      (throw e)))))))

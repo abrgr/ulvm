@@ -159,21 +159,19 @@
          (http-respond {:res (:res http-receive)})]}}
    :flow-initializers {
      ; TODO: effectful initializer, not initializing a value
-     _ [
-       (route {:app     (:app todo-svc)
-               :method  :post
-               :path    "/sessions"
-               :handler (:send-http-response *transformers*)})]}}
-  ((:login-validator todo-svc) {:session (:body req)}                :as valid-login)
-  ((:authorize-login todo-svc) {:username (:username valid-login)
-                                :password (:password valid-login)}   :as authorized-login)
+     _ [(route {:app     (:app todo-svc)
+                :method  :post
+                :path    "/sessions"
+                :handler (:send-http-response *transformers*)})]}}
+  ((:authorize-login todo-svc) {:username username
+                                :password password}   :as authorized-login)
   ((:create-token todo-svc)    {}                                    :as session-token
                                                                      :after [authorized-login])
   ((:store-session todo-svc)   {:username (:username authorized-login)
-                                :token    :session-token
+                                :token    session-token
                                 :data     {}}                        :as stored-session)
   ((:make-session-response todo-svc)
-                               {:token :session-token}               :as session-response
+                               {:token session-token}               :as session-response
                                                                      :after [stored-session]))
 
 (ulvm.core/defflow :create-todo [req]
@@ -197,8 +195,8 @@
   ((:create-token todo-svc)    {}                                    :as session-token
                                                                      :after [authorized-login])
   ((:store-session todo-svc)   {:username (:username authorized-login)
-                                :token    :session-token
+                                :token    session-token
                                 :data     {}}                        :as stored-session)
   ((:make-session-response todo-svc)
-                               {:token :session-token}               :as session-response
+                               {:token session-token}               :as session-response
                                                                    :after [stored-session]))
