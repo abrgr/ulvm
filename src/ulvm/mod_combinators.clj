@@ -11,7 +11,7 @@
 ; TODO: actually implement this
 (deftype CustomModCombinator [runnable-env]
   uprj/ModCombinator
-  (-scope-with-results [this prj invocations deps consumer result] (e/right {})))
+  (-block-with-results [this prj invocations body] (e/right {})))
 
 (defn- get-rel-name
   "Runnable env loader name from loader entity"

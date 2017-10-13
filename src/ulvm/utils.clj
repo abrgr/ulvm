@@ -40,3 +40,30 @@
           {:items   (concat i [item])
            :visited (conj v item)
            :unsat   (if (deps-sat? v item-deps) u (conj u item))})))))
+
+(defn flip-map
+  "Given a map of keys to colls, return a map from
+   each item in a coll to a set of keys that
+   map to it."
+  [m]
+  (reduce
+    (fn [flipped [k vs]]
+      (merge-with
+        #(into #{} (concat %1 %2))
+        flipped
+        (into {} (map (fn [v] [v #{k}]) vs))))
+    {}
+    m))
+
+(defn pred-partition
+  "Return {true [true-items] false [false-items]}, where
+   [true-items] is a vector of items for which
+   f(item) is true and similarly for [false-items]."
+  [f coll]
+  (reduce
+    (fn [p i]
+      (if (f i)
+        (merge-with conj p {true i})
+        (merge-with conj p {false i})))
+    {true [] false []}
+    coll))

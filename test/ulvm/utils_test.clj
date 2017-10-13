@@ -17,3 +17,8 @@
     (is (= #{:b} (:unsat sorted)))
     (is (= #{:a :b :c :d} (:visited sorted)))
     (is (= [:d :c :b :a] (:items sorted)))))
+
+(deftest flip-map-test
+  (st/instrument (st/instrumentable-syms 'ulvm))
+  (is (= (u/flip-map {:a [:b :c], :b [:c :d]})
+         {:b #{:a}, :c #{:a, :b}, :d #{:b}})))

@@ -11,7 +11,7 @@
                            set core-set}))
 
 (declare get-runnable-env-rep
-         scope-with-results
+         block-with-results
          get-prj-ent
          get-or-make
          get
@@ -45,16 +45,18 @@
         :ret (su/either-of? su/any ::ucore/runnable-env))
 
 (defprotocol ModCombinator
-  (-scope-with-results
-    [this prj invocations deps consumer result]
-    "Returns an AST for a scope in which the results of
-     the invocations are available and in which consumer
-     is included (consumer consumes the results)."))
+  (-block-with-results
+    [this prj invocations body]
+    "Generates an AST for a scope in which the results of
+     the invocations are available and in which body 
+     is included (body uses the results)."))
 
-(defn scope-with-results
-  "Loads a module"
-  [this prj invocations deps consumer result]
-  (-scope-with-results this prj invocations deps consumer result))
+(defn block-with-results
+  "Generates an AST for a scope in which the results of
+   the invocations are available and in which body 
+   is included (body uses the results)."
+  [this prj invocations body]
+  (-block-with-results this prj invocations body))
 
 (s/def ::result-name keyword?)
 (s/def ::arguments
@@ -67,14 +69,12 @@
                    ::ucore/module-combinator
                    ::arguments]))
 
-(s/fdef scope-with-results
+(s/fdef block-with-results
         :args (s/cat :combinator  #(satisfies? ModCombinator %)
                      :prj         ::project
                      :invocations (s/+ ::invocation)
-                     :deps        (s/map-of symbol? (s/+ symbol?))
-                     :consumer    su/any
-                     :result      (s/? symbol?))
-        :ret (su/either-of? su/any map?))
+                     :body        su/any)
+        :ret e/either?)
 
 (s/def ::mod-combinators
   (s/map-of

@@ -11,6 +11,7 @@
             [ulvm.utils :as u]
             [ulvm.env-keypaths :as k]
             [ulvm.scopes :as scopes]
+            [ulvm.blocks :as b]
             [cats.core :as m]
             [cats.monad.either :as e]))
 
@@ -100,17 +101,21 @@
     invocations))
 
 (defn- ordered-invocations
-  "Returns a seq of topologically ordered invocations"
-  [invocations args]
-  (let [invs    (named-invocations invocations)
-        deps    (invocation-dependency-graph invs)]
-    (u/topo-sort deps (keys invs) (into #{} args))))
+  "Returns a seq of topologically ordered invocation names"
+  [invs deps args]
+  (let [sorted  (u/topo-sort deps (keys invs) (into #{} args))]
+    (if (empty? (:unsat sorted))
+        (e/right (:items sorted))
+        (e/left  {:msg        "Failed to satisfy call graph dependencies"
+                  :unsat-deps (:unsat sorted)}))))
 
 (defn- build-flow-in-scope
   "Builds the portion of a flow contained in a scope"
-  [proj scope-name scope flow]
-  (-> (ordered-invocations (:invocations flow) (::ucore/args (meta flow)))
-      (identity)))
+  [proj scope-name scope flow-name flow]
+  (let [invs    (named-invocations (:invocations flow))
+        deps    (invocation-dependency-graph invs)]
+    (m/->>= (ordered-invocations invs deps (::ucore/args (meta flow)))
+            (b/build-call-graph proj scope flow-name deps invs))))
 
 (defn- build-flows-in-scope
   "Builds all flows for the given scope."
@@ -120,7 +125,7 @@
          (fn [prj [flow-name flow]]
             (->> flow
                  (uprj/canonical-flow)
-                 (build-flow-in-scope prj scope-name scope)
+                 (build-flow-in-scope prj scope-name scope flow-name)
                  (uprj/set-env prj (k/build-flow-in-scope-keypath scope-name flow-name))))
          proj)))
 
