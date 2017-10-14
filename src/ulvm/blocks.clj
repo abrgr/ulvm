@@ -1,7 +1,12 @@
 (ns ^{:author "Adam Berger"} ulvm.blocks
   "Block algorithms"
-  (:require [ulvm.utils :as u]
+  (:require [clojure.set :as s]
+            [ulvm.utils :as u]
+            [cats.core :as m]
             [cats.monad.either :as e]))
+
+(declare gen-ast
+         gen-block-ast)
 
 (defn- get-unique-deps
   "Returns the set of deps that are unique to this invocation
@@ -24,7 +29,6 @@
                              (map #(str "invoke-" %))
                              (interleave (map symbol names))
                              (into []))
-          inner-asts    (map :ast inner-blocks)
           direct-deps   (->> names
                              (map #(get deps %))
                              (map #(into [] %))
@@ -34,14 +38,14 @@
                              (map #(into [] %))
                              (flatten))
           all-deps      (->> (concat direct-deps indirect-deps)
-                             (into #{}))]
+                             (into #{})
+                             (#(s/difference % names)))]
       {:provides   names
        :depends-on all-deps
-       :ast        `(~'let ~bindings (do ~@inner-asts))})))
+       :body       inner-blocks})))
 
-(defn build-call-graph
-  "Builds the actual call graph for the invocations"
-  [prj scope flow-name deps named-invs invocations]
+(defn- build-basic-lexical-scoping
+  [deps named-invs invocations]
   (let [inverse-deps (u/flip-map deps)]
            ; We walk "up" the invocation graph, beginning with
            ; the invocation that should happen "last."
@@ -88,5 +92,26 @@
                               (gen-block deps inverse-deps provided-vals (conj inner-blocks block)))
               next-blocks  (conj remaining-blocks result-block)]
           (if (empty? next-remaining-invs)
-            (e/right (map :ast next-blocks))
+            (e/right next-blocks)
             (recur next-remaining-invs next-blocks)))))))
+
+(defn- gen-block-ast
+  [block]
+  (let [names    (get block :provides)
+        bindings (->> names
+                      (map #(str "invoke-" %))
+                      (interleave (map symbol names))
+                      (into []))
+        body     (gen-ast (get block :body))]
+    `(~'let ~bindings (do ~@body))))
+
+(defn- gen-ast
+  "Generate an AST given a block graph"
+  [blocks]
+  (map gen-block-ast blocks))
+
+(defn build-call-graph
+  "Builds the actual call graph for the invocations"
+  [prj scope flow-name deps named-invs invocations]
+  (m/->>= (build-basic-lexical-scoping deps named-invs invocations)
+          ((comp e/right gen-ast))))
