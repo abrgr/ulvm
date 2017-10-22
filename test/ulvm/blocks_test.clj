@@ -26,6 +26,7 @@
             nil
             {"b" #{"a"} "c" #{"b" "a"}}
             {}
+            {}
             ["a" "b" "c"])]
     (is (e/right? g))
     (m/fmap #(is (= %

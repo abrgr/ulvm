@@ -113,9 +113,10 @@
   "Builds the portion of a flow contained in a scope"
   [proj scope-name scope flow-name flow]
   (let [invs    (named-invocations (:invocations flow))
-        deps    (invocation-dependency-graph invs)]
+        deps    (invocation-dependency-graph invs)
+        graph-config {}]
     (m/->>= (ordered-invocations invs deps (::ucore/args (meta flow)))
-            (b/build-call-graph proj scope flow-name deps invs))))
+            (b/build-call-graph proj scope flow-name deps graph-config invs))))
 
 (defn- build-flows-in-scope
   "Builds all flows for the given scope."

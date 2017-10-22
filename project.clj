@@ -8,7 +8,8 @@
                 [com.spotify/docker-client "8.7.3"]
                 [http-kit "2.2.0"]
                 [funcool/cats "2.1.0"]
-                [org.clojure/tools.cli "0.3.5"]]
+                [org.clojure/tools.cli "0.3.5"]
+                [org.clojure/core.logic "0.8.11"]]
  :plugins [[lein-cljfmt "0.5.6"]]
  :main ^:skip-aot ulvm.cli
  :target-path "target/%s"
