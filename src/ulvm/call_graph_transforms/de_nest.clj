@@ -1,80 +1,49 @@
 (ns ^{:author "Adam Berger"} ulvm.call-graph-transforms.de-nest
   "De-nesting transform"
-  (:refer-clojure :exclude [==])
-  (:use     [clojure.core.logic]))
+  (:require [clojure.zip :as z]))
 
-(declare results-in-same-block
-         de-nest
-         de-nest-many
-         transform)
+(defn- block-zip
+  "Zipper for blocks"
+  [root]
+  (z/zipper
+   #(not-empty (get % :body))
+   #(get % :body)
+   (fn [x children]
+     (assoc x :body (into [] children)))
+   root))
 
-(defne results-in-same-block
-  [in-same-block invs]
-  ([_ []])
-  ([in-same-block [?h . ?t]]
-    (membero ?h in-same-block)
-    (results-in-same-block in-same-block ?t)))
-
-(defne vappendo
-  "appendo that supports vectors"
-  [x y z]
-  ([x [] x])
-  ([x [h . t] z]
-    (fresh [i]
-      (conjo x h i)
-      (vappendo i t z))))
-
-(defne de-nest
-  [in-same-block input-block output-block]
-  ([_
-    {:provides   ?provides
-     :depends-on ?deps
-     :body       []}
-    [{:provides   ?provides
-      :depends-on ?deps
-      :body       []}]])
-  ([in-same-block
-    {:provides   ?provides
-     :depends-on ?deps
-     :body       ?body}
-    output-blocks]
-    (conde
-      [(fresh [inner output-t h-provides h-deps h-body]
-         (results-in-same-block in-same-block ?provides)
-         (matche [?body]
-           ([[?h . ?t]]
-             (== {:provides   h-provides
-                  :depends-on h-deps
-                  :body       h-body}
-                 ?h)
-             (vappendo ?t h-body inner)
-             (de-nest in-same-block
-                     {:provides   h-provides
-                      :depends-on h-deps
-                      :body       inner}
-                     output-t)
-             (vappendo [{:provides   ?provides
-                         :depends-on ?deps
-                         :inner      []}]
-                       output-t
-                       output-blocks))))]
-      [(fresh [de-nested]
-         (nafc results-in-same-block in-same-block ?provides)
-         (nafc emptyo ?body)
-         (de-nest-many in-same-block ?body de-nested)
-         (== output-blocks
-             [{:provides   ?provides
-               :depends-on ?deps
-               :body       de-nested}]))])))
-
-(defne de-nest-many
-  [in-same-block input-blocks output-blocks]
-  ([_ [] []])
-  ([in-same-block [h . t] output-blocks]
-    (fresh [de-nested-h de-nested-t]
-      (de-nest in-same-block h de-nested-h)
-      (de-nest-many in-same-block t de-nested-t)
-      (vappendo de-nested-h de-nested-t output-blocks))))
+(defn- z-insert-all
+  [loc nodes]
+  (if (empty? nodes)
+    loc
+    (recur (z/insert-right loc (first nodes))
+           (rest nodes))))
+    
+(defn- de-nest
+  [in-same-block blocks]
+  ; we wrap blocks in a top-level block so that we can de-nest
+  ; our actual top-level blocks
+  (loop [loc (z/next
+               (block-zip {:provides   #{}
+                           :depends-on #{}
+                           :body       blocks}))]
+    (if (z/end? loc)
+      (:body (z/root loc)) ; un-wrap our top-level block
+      (let [n    (z/node loc)
+            {body     :body
+             deps     :depends-on
+             provides :provides}   n]
+        (->
+          (if (in-same-block provides)
+            (-> loc
+              (z-insert-all body)
+              (z/replace
+                {:provides   provides
+                 :depends-on deps
+                 :body       []}))
+            loc)
+          z/next
+          recur)))))
 
 (defn transform
   "Most invocations (e.g. synchronous calls in most languages)
@@ -97,16 +66,11 @@
      :depends-on #{\"a\"},
      :body []}]"
   [deps graph-config named-invs call-graph]
-  (let [in-same-block (reduce
-                        (fn [in-same-block [name inv]]
-                          (let [mc nil ; TODO: get the mod-combinator for inv
-                                mc-attrs (get-in call-graph [:mod-combinator-configs mc :attrs])]
-                            (if (contains? mc-attrs :ulvm.core/result-in-invocation-block)
-                              (conj in-same-block name)
-                              in-same-block)))
-                        []
-                        named-invs)]
-    (->>
-      (run 1 [q]
-        (de-nest-many [:a :b] call-graph q))
-      first)))
+  (letfn [(in-same-block [invs]
+            (every?
+              #(as-> (get named-invs %) m
+                     (get m :mod-combinator)
+                     (get-in graph-config [:mod-combinator-configs m :attrs])
+                     (contains? m :ulvm.core/result-in-invocation-block))
+              invs))]
+     (de-nest in-same-block call-graph)))

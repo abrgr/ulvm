@@ -11,17 +11,20 @@
          :depends-on []
          :body [{:provides [:a]
                  :depends-on []
-                 :inner []}
+                 :body []}
                 {:provides [:b]
                  :depends-on [:a]
-                 :inner []}
+                 :body []}
                 {:provides [:x]
                  :depends-on [:a]
                  :body []}]}]
        (d/transform
          {}
-         {}
-         {}
+         {:mod-combinator-configs
+           {:sync {:attrs {:ulvm.core/result-in-invocation-block true}}}}
+         {:a {:mod-combinator :sync}
+          :b {:mod-combinator :sync}
+          :x {:mod-combinator :sync}}
          [{:provides [:o]
            :depends-on []
            :body [{:provides [:a]
