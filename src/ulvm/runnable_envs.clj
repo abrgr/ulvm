@@ -141,12 +141,13 @@
 
 (defn- find-ideal-flow
   [re-rep ideal-flow-name]
-  (some->
-    (filter
-      #(contains? (::ucore/ideal-flows (val %)) ideal-flow-name)
-      (::ucore/exported-flows re-rep))
-    (first)
-    (key)
+  (->
+    (some->
+      (filter
+        #(contains? (::ucore/ideal-flows (val %)) ideal-flow-name)
+        (::ucore/exported-flows re-rep))
+      (first)
+      (key))
     (futil/opt-either (str "No ideal flow [" ideal-flow-name "] in " (::ucore/ns re-rep)))))
 
 (defn invoke-ideal-flow
