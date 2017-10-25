@@ -31,6 +31,8 @@
 
 (defn- scope-with-renv
   [renv]
+  ; TODO: we should only use these with-fallbacks if we can't find
+  ;       the ideal flow.  We don't want to swallow actual errors.
   (reify Scope
     (-stop [scope prj]
       (renv/stop prj renv))

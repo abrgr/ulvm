@@ -26,12 +26,12 @@
   ([scope-name]
     (conj (scope-deps-keypath) scope-name)))
 
-(defn build-scope-keypath
-  "Keypath for the result of building a scope"
+(defn make-scope-keypath
+  "Keypath for the result of making a scope"
   ([]
-    [:build-scope])
+    [:make-scope])
   ([scope-name]
-    (conj (build-scope-keypath) scope-name)))
+    (conj (make-scope-keypath) scope-name)))
 
 (defn build-flow-in-scope-keypath
   "Keypath for the result of building a flow for a scope"
