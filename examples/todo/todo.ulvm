@@ -7,13 +7,31 @@
   "No-op combinator"
   {:ulvm.core/runnable-env-ref
    {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
-    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/no-op.ulvm"}}})
+    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/nop.ulvm"}}})
 
 (ulvm.core/defmodcombinator :react-component
   "React component combinator"
   {:ulvm.core/runnable-env-ref
    {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
     :ulvm.core/runnable-env-descriptor {:path "mod-combinators/react-component.ulvm"}}})
+
+(ulvm.core/defmodcombinator :js-sync
+  "Synchronous javascript function"
+  {:ulvm.core/runnable-env-ref
+   {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
+    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/js-sync.ulvm"}}})
+
+(ulvm.core/defmodcombinator :js-promise
+  "Promise-returning, asynchronous javascript function"
+  {:ulvm.core/runnable-env-ref
+   {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
+    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/js-promise.ulvm"}}})
+
+(ulvm.core/defmodcombinator :js-route-handler
+  "Route handlingjavascript function"
+  {:ulvm.core/runnable-env-ref
+   {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
+    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/js-route-handler.ulvm"}}})
 
 (ulvm.core/defscope :db
   "Database for storing todos"

@@ -49,7 +49,10 @@
     [this prj invocations body]
     "Generates an AST for a scope in which the results of
      the invocations are available and in which body 
-     is included (body uses the results)."))
+     is included (body uses the results).")
+  (-get-mod-combinator-config
+    [this prj config]
+    "Returns the config for this combinator."))
 
 (defn block-with-results
   "Generates an AST for a scope in which the results of
@@ -57,6 +60,11 @@
    is included (body uses the results)."
   [this prj invocations body]
   (-block-with-results this prj invocations body))
+
+(defn get-mod-combinator-config
+  "Returns the config for this combinator."
+  [this prj config]
+  (-get-mod-combinator-config this prj config))
 
 (s/def ::result-name keyword?)
 (s/def ::arguments
@@ -74,6 +82,12 @@
                      :prj         ::project
                      :invocations (s/+ ::invocation)
                      :body        su/any)
+        :ret e/either?)
+
+(s/fdef get-mod-combinator-config
+        :args (s/cat :combinator  #(satisfies? ModCombinator %)
+                     :prj         ::project
+                     :config      map?)
         :ret e/either?)
 
 (s/def ::mod-combinators
@@ -170,12 +184,12 @@
   "Get or make a project element"
   [prj type id entity]
   (let [orig (get-in prj [type id])]
-    (if (some? orig)
-      {:prj prj, :el orig}
-      (let [make    (maker-from-prj-type type)
-            new-prj (make prj id entity)]
-        {:prj new-prj
-         :el (get-in new-prj [type id])}))))
+    (cond
+      (some? orig) {:prj prj, :el orig}
+      :else (let [make    (maker-from-prj-type type)
+                  new-prj (make prj id entity)]
+              {:prj new-prj
+               :el (get-in new-prj [type id])}))))
 
 (s/fdef get-or-make
         :args (s/cat :prj  ::project
@@ -191,8 +205,9 @@
 (defn get
   "Get or create a project element"
   [prj type id]
-  (let [ent-key (entity-type-from-prj-type type)]
-    (get-or-make prj type id (get-prj-ent prj ent-key id))))
+  (let [ent-key (entity-type-from-prj-type type)
+        ent     (get-prj-ent prj ent-key id)]
+    (get-or-make prj type id ent)))
 
 (s/fdef get
         :args (s/cat :prj  ::project

@@ -196,7 +196,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::mod-combinator
   (s/keys
-   :req [::runnable-env-ref]))
+   :req [::runnable-env-ref]
+   :opt [::config]))
 
 (s/def ::mod-combinators
   (s/map-of ::name ::mod-combinator))

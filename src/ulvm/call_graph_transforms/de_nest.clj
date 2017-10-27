@@ -65,12 +65,12 @@
     {:provides #{\"b\"},
      :depends-on #{\"a\"},
      :body []}]"
-  [deps graph-config named-invs call-graph]
+  [deps graph-cfg named-invs call-graph]
   (letfn [(in-same-block [invs]
             (every?
               #(as-> (get named-invs %) m
                      (get m :mod-combinator)
-                     (get-in graph-config [:mod-combinator-configs m :attrs])
+                     (get-in graph-cfg [:mod-combinator-cfgs m :attrs])
                      (contains? m :ulvm.core/result-in-invocation-block))
               invs))]
      (de-nest in-same-block call-graph)))

@@ -20,7 +20,7 @@
                  :body []}]}]
        (d/transform
          {}
-         {:mod-combinator-configs
+         {:mod-combinator-cfgs
            {:sync {:attrs {:ulvm.core/result-in-invocation-block true}}}}
          {:a {:mod-combinator :sync}
           :b {:mod-combinator :sync}

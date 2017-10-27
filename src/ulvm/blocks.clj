@@ -6,9 +6,6 @@
             [cats.monad.either :as e]
             [ulvm.call-graph-transforms.de-nest :as de-nest]))
 
-(declare gen-ast
-         gen-block-ast)
-
 (defn- get-unique-deps
   "Returns the set of deps that are unique to this invocation
    among all invocations in invs"
@@ -96,22 +93,6 @@
             (e/right next-blocks)
             (recur next-remaining-invs next-blocks)))))))
 
-(defn- gen-block-ast
-  [block]
-  ; TODO: this needs to interact with module combinators
-  (let [names    (get block :provides)
-        bindings (->> names
-                      (map #(str "invoke-" %))
-                      (interleave (map symbol names))
-                      (into []))
-        body     (gen-ast (get block :body))]
-    `(~'let ~bindings (do ~@body))))
-
-(defn- gen-ast
-  "Generate an AST given a block graph"
-  [blocks]
-  (map gen-block-ast blocks))
-
 (def call-graph-transformers
   [de-nest/transform])
 
@@ -119,11 +100,10 @@
   "Builds the actual call graph for the invocations"
   [prj scope flow-name deps graph-config named-invs invocations]
   (as-> (build-basic-lexical-scoping deps named-invs invocations) r
-         (reduce
-           (fn [graph f]
-             (m/fmap
-               (partial f deps graph-config named-invs)
-               graph))
-           r
-           call-graph-transformers)
-         (m/fmap gen-ast r))) ; TODO: ast generation is likely a different concern; should keep this part pure
+        (reduce
+          (fn [graph f]
+            (m/fmap
+              (partial f deps graph-config named-invs)
+              graph))
+          r
+          call-graph-transformers)))
