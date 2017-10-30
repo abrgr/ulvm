@@ -233,7 +233,14 @@
                            (into {}))
         deps          (invocation-dependency-graph invs)]
     (m/->>= (ordered-invocations relevant-invs deps (::ucore/args (meta flow)))
-            (b/build-call-graph proj scope flow-name deps graph-cfg enhanced-invs)
+            (b/build-call-graph
+              proj
+              scope-name
+              scope
+              flow-name
+              deps
+              graph-cfg
+              enhanced-invs)
             (#(e/right (gen-ast %))))))
 
 (s/fdef build-flow-in-scope

@@ -102,12 +102,12 @@
 
 (defn build-call-graph
   "Builds the actual call graph for the invocations"
-  [prj scope flow-name deps graph-cfg named-invs invocations]
+  [prj scope-name scope flow-name deps graph-cfg named-invs invocations]
   (as-> (build-basic-lexical-scoping deps named-invs invocations) r
         (reduce
           (fn [graph f]
             (m/fmap
-              (partial f deps graph-cfg named-invs)
+              (partial f deps scope-name graph-cfg named-invs)
               graph))
           r
           call-graph-transformers)))
@@ -123,6 +123,7 @@
 
 (s/fdef build-call-graph
         :args (s/cat :prj         ::uprj/project
+                     :scope-name  keyword?
                      :scope       #(satisfies? scopes/Scope %)
                      :flow-name   keyword?
                      :deps        (s/map-of symbol? (s/coll-of symbol?))

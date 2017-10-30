@@ -66,11 +66,16 @@
     {:provides #{\"b\"},
      :depends-on #{\"a\"},
      :body []}]"
-  [deps graph-cfg named-invs call-graph]
+  [deps scope-name graph-cfg named-invs call-graph]
   (letfn [(in-same-block [invs]
             (every?
-              #(as-> (get named-invs %) m
-                     (get-in m [:mod ::ucore/mod-combinator-name])
-                     (get-in graph-cfg [:mod-combinator-cfgs m :attrs ::ucore/result-in-invocation-block]))
+              #(as-> (get-in named-invs [%
+                                         :mod
+                                         ::ucore/mod-combinator-name]) m
+                     (get-in graph-cfg [:mod-combinator-cfgs
+                                        scope-name
+                                        m
+                                        :attrs
+                                        ::ucore/result-in-invocation-block]))
               invs))]
      (de-nest in-same-block call-graph)))

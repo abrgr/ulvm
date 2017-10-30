@@ -19,7 +19,9 @@
   "Synchronous javascript function"
   {:ulvm.core/runnable-env-ref
    {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
-    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/js-sync.ulvm"}}})
+    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/js-sync.ulvm"}}
+   :ulvm.core/config
+   {:attrs {:ulvm.core/result-in-invocation-block true}}})
 
 (ulvm.core/defmodcombinator :js-promise
   "Promise-returning, asynchronous javascript function"
@@ -103,7 +105,7 @@
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/store-session"}}
                        :make-session-response {:ulvm.core/mod-combinator-name :js-promise
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/make-session-response"}}
-                       :create-token      {:ulvm.core/mod-combinator-name :js-promise
+                       :create-token      {:ulvm.core/mod-combinator-name :js-sync
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/create-token"}}}
    :init [(express          {} :as app)
           (json-body-parser {} :as json-middleware) ; TODO: would be nice not to name *everything*
