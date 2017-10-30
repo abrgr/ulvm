@@ -26,13 +26,9 @@
 (defn ulvm-compile
   "Compile a ulvm system"
   [directory]
-  (let [ulvm-entities (uread/read-ulvm-dir directory)
-        env {} ; TODO: get a real environment
-        empty-project {:entities        ulvm-entities
-                       :mod-combinators {}
-                       :renv-loaders    {}
-                       :renvs           {}
-                       :env             {::ucore/project-root directory}}
+  (let [ulvm-entities   (uread/read-ulvm-dir directory)
+        env             {::ucore/project-root directory} ; TODO: get a real environment
+        empty-project   (uprj/init ulvm-entities env)
         prj-with-scopes (build-scopes empty-project)]
     prj-with-scopes)) ; TODO
 
@@ -75,7 +71,7 @@
          prj
          mod-combinators
          mod-combinator-cfgs
-         (get mods scope-name)
+         mods
          scope-name
          (get scope-cfgs scope-name)
          (get scopes scope-name)))
@@ -176,25 +172,32 @@
    A scope-name is used to disambiguate references to
    local modules."
   [mods scope-name inv]
-  (let [inv-mod     (:invocation-module inv)
+  (let [inv-mod     (->> [(:invocation-module inv)]
+                         (into {}))
         scope-mod   (:scope-module inv-mod)
         local-mod   (:local-module inv-mod)
         ; we have to do some gymnastics to handle local and
         ; scope modules
-        scope-name  (or (:scope scope-mod)
-                        scope-name)
-        module-name (or (:module-name scope-mod)
-                        local-mod)
-        module      (get-in mods [scope-name module-name])]
-    module))
+        scope       (-> (or (:scope scope-mod)
+                             scope-name)
+                        keyword)
+        module-name (-> (or (:module-name scope-mod)
+                             local-mod)
+                        keyword)
+        module      (get-in mods [scope module-name])]
+    {:mod   module
+     :scope scope}))
 
 (defn- enhance-invocations
   [mods scope-name invs]
   (->> invs
        (map
          (fn [[n inv]]
-           [n {:inv inv
-               :mod (module-for-invocation mods scope-name inv)}]))
+           [n 
+            (-> (module-for-invocation mods scope-name inv)
+                (merge {:inv inv}))]))
+       (filter
+         #(= scope-name (:scope (second %))))
        (into {})))
 
 (defn- gen-block-ast
@@ -216,18 +219,26 @@
 (defn- build-flow-in-scope
   "Builds the portion of a flow contained in a scope"
   [proj graph-cfg mods scope-name scope flow-name flow]
-  (let [invs         (->> (get flow :invocations)
-                          named-invocations
-                          (enhance-invocations mods scope-name))
-        deps         (invocation-dependency-graph invs)]
-    (m/->>= (ordered-invocations invs deps (::ucore/args (meta flow)))
-            (b/build-call-graph proj scope flow-name deps graph-cfg invs)
+  (let [invs          (->> (get flow :invocations)
+                           named-invocations)
+        enhanced-invs (enhance-invocations mods scope-name invs)
+        ; TODO: this is wrong - we need something more
+        ;       intelligent to split a flow into steps for a scope
+        relevant-invs (->> invs
+                           (filter
+                             #(= (get-in enhanced-invs [(key %) :scope]) scope-name))
+                           (into {}))
+        deps          (invocation-dependency-graph invs)]
+    (m/->>= (ordered-invocations relevant-invs deps (::ucore/args (meta flow)))
+            (b/build-call-graph proj scope flow-name deps graph-cfg enhanced-invs)
             (#(e/right (gen-ast %))))))
 
 (s/fdef build-flow-in-scope
         :args (s/cat :prj        ::uprj/project
                      :graph-cfg  (s/keys :req-un [::mod-combinator-cfgs])
-                     :mods       (s/map-of keyword? ::ucore/module)
+                     :mods       (s/map-of keyword?
+                                           (s/map-of keyword?
+                                                     ::ucore/module))
                      :scope-name keyword?
                      :scope      #(satisfies? scopes/Scope %)
                      :flow-name  keyword?
@@ -252,7 +263,9 @@
 (s/fdef build-flows-in-scope
         :args (s/cat :prj        ::uprj/project
                      :graph-cfg  (s/keys :req-un [::mod-combinator-cfgs])
-                     :mods       (s/map-of keyword? ::ucore/module)
+                     :mods       (s/map-of keyword?
+                                           (s/map-of keyword?
+                                                     ::ucore/module))
                      :scope-name keyword?
                      :scope      #(satisfies? scopes/Scope %))
         :ret  ::uprj/project)

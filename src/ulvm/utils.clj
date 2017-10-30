@@ -26,6 +26,10 @@
           remaining (rest items)
           deps-sat  (deps-sat? visited item-deps)]
       (cond
+        (empty? items)
+        {:items   []
+         :visited #{}
+         :unsat   #{}}
         (empty? remaining)
         {:items   [item]
          :visited (conj visited item)

@@ -417,3 +417,12 @@
 (defn canonical-flow
   [flow-ent]
   (with-meta (s/conform ::ucore/flow flow-ent) (meta flow-ent)))
+
+(defn init
+  "Initial project"
+  [entities env]
+  {:entities        entities
+   :mod-combinators {}
+   :renv-loaders    {}
+   :renvs           {}
+   :env             env})

@@ -21,6 +21,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (s/def ::runnable-env-descriptor map?)
 
+(s/def ::builtin-runnable-env-loader-name ::name)
+
+(s/def ::runnable-env-loader-name ::name)
+
 (s/def ::runnable-env-ref
   (s/keys
    :req [(or ::builtin-runnable-env-loader-name

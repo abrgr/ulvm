@@ -85,7 +85,7 @@
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/validators/auth"}}
                        :todo-validator    {:ulvm.core/mod-combinator-name :js-sync
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/validators/todo"}}
-                       :login-validator   {:ulvm.core/mod-combinator-name :js-sync
+                       :authorize-login   {:ulvm.core/mod-combinator-name :js-sync
                                            :ulvm.core/mod-descriptor {:local-filesystem "todo-svc/validators/login"}}
                        :route             {:ulvm.core/mod-combinator-name :js-route-handler
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/route"}}
@@ -98,7 +98,13 @@
                        :listen            {:ulvm.core/mod-combinator-name :js-sync
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/listen"}}
                        :env               {:ulvm.core/mod-combinator-name :js-sync
-                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/env"}}}
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/env"}}
+                       :store-session     {:ulvm.core/mod-combinator-name :js-promise
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/store-session"}}
+                       :make-session-response {:ulvm.core/mod-combinator-name :js-promise
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/make-session-response"}}
+                       :create-token      {:ulvm.core/mod-combinator-name :js-promise
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/create-token"}}}
    :init [(express          {} :as app)
           (json-body-parser {} :as json-middleware) ; TODO: would be nice not to name *everything*
           (mount-middleware {:app app, :middleware json-middleware})

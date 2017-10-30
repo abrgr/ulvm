@@ -18,6 +18,13 @@
     (is (= #{:a :b :c :d} (:visited sorted)))
     (is (= [:d :c :b :a] (:items sorted)))))
 
+(deftest topo-sort-empty
+  (st/instrument (st/instrumentable-syms 'u))
+  (let [sorted (u/topo-sort {} [])]
+    (is (= #{} (:unsat sorted)))
+    (is (= #{} (:visited sorted)))
+    (is (= [] (:items sorted)))))
+
 (deftest flip-map-test
   (st/instrument (st/instrumentable-syms 'ulvm))
   (is (= (u/flip-map {:a [:b :c], :b [:c :d]})

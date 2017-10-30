@@ -1,8 +1,12 @@
 (ns ^{:author "Adam Berger"} ulvm.spec-utils
   "Spec utilities"
-  (:require [cats.monad.either :as e]))
+  (:require [clojure.spec :as s]
+            [cats.monad.either :as e]))
 
-(defn any [_] true)
+(def any
+  (s/with-gen
+    (s/spec (fn [_] true))
+    #(s/gen #{{:any :thing}})))
 
 (defn either-of?
   "Predicate checking whether the value is an either and whether it satisfies left-fn if a left or right-fn if a right"

@@ -3,6 +3,8 @@
   (:require [clojure.spec.test :as st]
             [ulvm.blocks :as b]
             [ulvm.utils :as utils]
+            [ulvm.project :as uprj]
+            [ulvm.scopes :as scopes]
             [cats.core :as m]
             [cats.monad.either :as e])
   (:use     [clojure.test :only [is deftest]]))
@@ -21,16 +23,21 @@
 (deftest build-call-graph-test
   (st/instrument (st/instrumentable-syms ['ulvm 'b]))
   (let [g (b/build-call-graph
-            nil
-            nil
-            nil
-            {"b" #{"a"} "c" #{"b" "a"}}
+            (uprj/init {} {})
+            (reify scopes/Scope
+              (-stop [_ _] (e/right nil))
+              (-write-dependencies [_ _ _] (e/right nil))
+              (-get-config [_ _ _] (e/right nil))
+              (-get-module-config [_ _ _ _] (e/right nil))
+              (-get-implicit-modules [_ _ _] (e/right nil)))
+            :test-flow
+            {'b #{'a} 'c #{'b 'a}}
             {}
             {}
-            ["a" "b" "c"])]
+            ['a 'b 'c])]
     (is (e/right? g))
     (m/fmap #(is (= %
-                    '(let ["a" "invoke-a"]
-                       (let ["b" "invoke-b"]
-                         (let ["c" "invoke-c"]
+                    '(let [a invoke-a]
+                       (let [b invoke-b]
+                         (let [c invoke-c]
                            (do ())))))))))
