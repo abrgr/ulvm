@@ -53,9 +53,9 @@
            ; the invocation that should happen "last."
     (loop [remaining-invs (reverse invocations)
            blocks         []]
-            ;At each invocation, labeled inv, we:
       (if (empty? remaining-invs)
-          (e/right [])
+          (e/right blocks)
+                ;At each invocation, labeled inv, we:
           (let [inv-name            (first remaining-invs)
                 next-remaining-invs (rest remaining-invs)
                 inv                 (get named-invs inv-name)
@@ -66,7 +66,7 @@
                 {possible-blocks  true
                  remaining-blocks false} (u/pred-partition #(contains? (:provides %) inv-name) blocks)
                 block           (cond
-                                 (empty? possible-blocks)              (gen-block deps inverse-deps [inv-name])
+                                 (empty? possible-blocks)              (gen-block deps inverse-deps #{inv-name})
                                  (not (empty? (rest possible-blocks))) (throw "BAD") ; TODO: what do we do here?
                                  :else                                 (first possible-blocks))
                 ; 2. Gather the set of dependencies of inv that do
@@ -95,9 +95,7 @@
                                   ; of inner-blocks that are not in provided-vals.
                                   (gen-block deps inverse-deps provided-vals (conj inner-blocks block)))
                   next-blocks  (conj remaining-blocks result-block)]
-              (if (empty? next-remaining-invs)
-                (e/right next-blocks)
-                (recur next-remaining-invs next-blocks))))))))
+              (recur next-remaining-invs next-blocks)))))))
 
 (def call-graph-transformers
   [de-nest/transform])

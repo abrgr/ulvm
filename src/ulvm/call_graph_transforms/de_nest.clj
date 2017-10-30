@@ -1,6 +1,7 @@
 (ns ^{:author "Adam Berger"} ulvm.call-graph-transforms.de-nest
   "De-nesting transform"
-  (:require [clojure.zip :as z]))
+  (:require [ulvm.core :as ucore]
+            [clojure.zip :as z]))
 
 (defn- block-zip
   "Zipper for blocks"
@@ -69,8 +70,7 @@
   (letfn [(in-same-block [invs]
             (every?
               #(as-> (get named-invs %) m
-                     (get m :mod-combinator)
-                     (get-in graph-cfg [:mod-combinator-cfgs m :attrs])
-                     (contains? m :ulvm.core/result-in-invocation-block))
+                     (get-in m [:mod ::ucore/mod-combinator-name])
+                     (get-in graph-cfg [:mod-combinator-cfgs m :attrs ::ucore/result-in-invocation-block]))
               invs))]
      (de-nest in-same-block call-graph)))
