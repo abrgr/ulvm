@@ -13,6 +13,7 @@
             [ulvm.env-keypaths :as k]
             [ulvm.scopes :as scopes]
             [ulvm.blocks :as b]
+            [clojure.set :as cset]
             [cats.core :as m]
             [cats.monad.either :as e]))
 
@@ -112,12 +113,13 @@
 
 (defn- invocation-deps
   [invocation]
-  (concat
+  (cset/union
     (->>
       (get-in invocation [:after :names])
-      (map (comp second list))
-      (flatten)
-      (filter identity))
+      second
+      flatten
+      (filter identity)
+      (into #{}))
     (->> (:args invocation)
       (filter
         (fn [[_ [arg-type arg]]]
@@ -126,14 +128,15 @@
         (fn [[_ [_ [ref-arg-type arg]]]]
           (if (= ::ucore/default-ref-arg ref-arg-type)
             arg
-            (:result arg)))))))
+            (:result arg))))
+      (into #{}))))
 
 (defn- invocation-dependency-graph
   "Returns a map from invocation name to a set of names of the invocations it depends on."
   [invocations]
   (reduce
     (fn [deps [name invocation]]
-      (merge-with (comp vec concat) deps {name (invocation-deps invocation)}))
+      (merge-with cset/union deps {name (invocation-deps invocation)}))
     {}
     invocations))
 
@@ -285,7 +288,7 @@
                            (let [mc-name  (::ucore/mod-combinator-name mod)
                                  {p  :prj
                                   mc :el} (uprj/get prj :mod-combinators mc-name)]
-                             {:prj      p
+                             {:prj p
                               :mcs (assoc mcs mc-name mc)}))
                          {:prj prj
                           :mcs {}}
@@ -297,7 +300,7 @@
                              (fn [[n mc]]
                                (let [mc-ent   (uprj/get-prj-ent p ::ucore/mod-combinators n)
                                      orig-cfg (get mc-ent ::ucore/config {})
-                                     mc-cfg   (m/fmap #(uprj/get-mod-combinator-config % p orig-cfg) mc)]
+                                     mc-cfg   (m/bind mc #(uprj/get-mod-combinator-config % p orig-cfg))]
                                  [n mc-cfg]))
                              mcs)
                            (into {}))]

@@ -6,8 +6,8 @@
 (ulvm.core/defmodcombinator :mvn
   "Description of mvn combinator"
   {:ulvm.core/runnable-env-ref
-   {:ulvm.core/runnable-env-loader-name :http
-    :ulvm.core/runnable-env-descriptor {:url "http://github.com/ulvm/contrib/1.2.3/mvn-runnable-env.ulvm"}}})
+   {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
+    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/mvn.ulvm"}}})
 
 (ulvm.core/defscope :my-scope
   "description of scope"

@@ -4,6 +4,7 @@
             [ulvm.core :as ucore]
             [ulvm.runnable-envs :as re]
             [ulvm.project :as uprj]
+            [ulvm.func-utils :as futil]
             [cats.core :as m]
             [cats.monad.either :as e]))
 
@@ -14,7 +15,10 @@
 
 (defmethod uprj/make-renv-loader :default
   [proj re-loader-name re-loader-entity]
-  (let [{prj :prj, runnable-env :el} (uprj/deref-runnable-env proj re-loader-entity)]
+  (futil/mlet e/context
+              [p-el         (uprj/deref-runnable-env proj re-loader-entity)
+               prj          (:prj p-el)
+               runnable-env (:el p-el)]
     (uprj/set
      prj
      :renv-loaders

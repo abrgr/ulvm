@@ -186,8 +186,10 @@
   (let [orig (get-in prj [type id])]
     (cond
       (some? orig) {:prj prj, :el orig}
-      :else (let [make    (maker-from-prj-type type)
-                  new-prj (make prj id entity)]
+      :else (futil/mlet e/context
+                        [make    (maker-from-prj-type type)
+                         ent     entity
+                         new-prj (make prj id ent)]
               {:prj new-prj
                :el (get-in new-prj [type id])}))))
 
@@ -199,15 +201,19 @@
                              :renv-loaders
                              :renvs}
                      :id su/any
-                     :entity su/any)
+                     :entity (s/nilable
+                               (s/or :mc   ::ucore/mod-combinator
+                                     :rel  ::ucore/runnable-env-loader
+                                     :renv ::ucore/runnable-env)))
         :ret (s/keys :req-un [::prj ::el]))
 
 (defn get
   "Get or create a project element"
   [prj type id]
-  (let [ent-key (entity-type-from-prj-type type)
-        ent     (get-prj-ent prj ent-key id)]
-    (get-or-make prj type id ent)))
+  (futil/mlet e/context
+              [ent-key (entity-type-from-prj-type type)
+               ent     (get-prj-ent prj ent-key id)]
+              (get-or-make prj type id ent)))
 
 (s/fdef get
         :args (s/cat :prj  ::project

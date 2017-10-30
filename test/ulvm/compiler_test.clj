@@ -34,3 +34,10 @@
     (m/fmap
       #(t/is (= [] %))
       oi)))
+
+(t/deftest invocation-deps
+  (st/instrument (st/instrumentable-syms 'ulvm))
+  (let [orig-inv '((:test-mod test-scope) {:a dep-a :b dep-b} :after [added-dep])
+        inv      (s/conform ::ucore/flow-invocation orig-inv)
+        deps     (@#'c/invocation-deps inv)]
+    (t/is (= #{'dep-a 'dep-b 'added-dep} deps))))
