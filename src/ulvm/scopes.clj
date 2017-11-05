@@ -27,7 +27,9 @@
      and returns the configuration to use.")
   (-get-implicit-modules [scope prj config]
     "Returns a map of names to modules that the scope
-     implicitly provides."))
+     implicitly provides.")
+  (-resolve-name [scope prj config name-parts]
+    "Resolves name-parts into a valid name in this scope."))
 
 (defn- scope-with-renv
   [renv]
@@ -66,7 +68,20 @@
           renv
           :org.ulvm.scope/get-implicit-modules
           {:config             config})
-        {}))))
+        {}))
+    (-resolve-name [scope prj config name-parts]
+      (futil/with-fallback
+        (renv/invoke-ideal-flow
+          prj
+          renv
+          :org.ulvm.scope/resolve-name
+          {:config     config
+           :name-parts name-parts})
+        (->> name-parts
+             (map name)
+             (interpose "_")
+             (apply str)
+             symbol)))))
 
 (defn stop
   [scope prj]
@@ -87,6 +102,10 @@
 (defn get-implicit-modules
   [scope prj config]
   (-get-implicit-modules scope prj config))
+
+(defn resolve-name
+  [scope prj config name-parts]
+  (-resolve-name scope prj config name-parts))
 
 (defn make-scope
   "Make a scope instance"

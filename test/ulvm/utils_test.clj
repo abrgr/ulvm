@@ -29,3 +29,14 @@
   (st/instrument (st/instrumentable-syms 'ulvm))
   (is (= (u/flip-map {:a [:b :c], :b [:c :d]})
          {:b #{:a}, :c #{:a, :b}, :d #{:b}})))
+
+(deftest get-in
+  (st/instrument (st/instrumentable-syms 'ulvm))
+  (is
+    (=
+     (u/get-in
+       [:ref [:ulvm.core/named-ref-arg
+              {:sub-result :username
+               :result 'authorized-login}]]
+       [:ref :ulvm.core/named-ref-arg :sub-result])
+     :username)))

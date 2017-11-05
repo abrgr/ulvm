@@ -23,7 +23,8 @@
 
 (deftest build-call-graph-test
   (st/instrument (st/instrumentable-syms ['ulvm 'b]))
-  (let [g (b/build-call-graph
+  (let [deps {'b #{'a} 'c #{'b 'a}}
+        g (b/build-call-graph
             (uprj/init {} {})
             :test-scope
             (reify scopes/Scope
@@ -33,7 +34,8 @@
               (-get-module-config [_ _ _ _] (e/right nil))
               (-get-implicit-modules [_ _ _] (e/right nil)))
             :test-flow
-            {'b #{'a} 'c #{'b 'a}}
+            deps
+            (utils/flip-map deps)
             {}
             {}
             ['a 'b 'c])]
@@ -52,7 +54,8 @@
 
 (deftest build-call-graph-sync-test
   (st/instrument (st/instrumentable-syms ['ulvm 'b]))
-  (let [g (b/build-call-graph
+  (let [deps {'b #{'a} 'c #{'b 'a} 'a #{'x}}
+        g (b/build-call-graph
             (uprj/init {} {})
             :test-scope
             (reify scopes/Scope
@@ -62,7 +65,8 @@
               (-get-module-config [_ _ _ _] (e/right nil))
               (-get-implicit-modules [_ _ _] (e/right nil)))
             :test-flow
-            {'b #{'a} 'c #{'b 'a} 'a #{'x}}
+            deps
+            (utils/flip-map deps)
             {:mod-combinator-cfgs
               {:test-scope
                {:sync

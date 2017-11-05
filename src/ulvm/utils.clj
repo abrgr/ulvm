@@ -1,5 +1,6 @@
 (ns ^{:author "Adam Berger"} ulvm.utils
-  "ULVM utilities")
+  "ULVM utilities"
+  (:refer-clojure :rename {get-in core-get-in}))
 
 (defmacro retrying
   [initial-backoff max-retries retryable-error body]
@@ -71,3 +72,38 @@
         (merge-with conj p {false i})))
     {true [] false []}
     coll))
+
+(defn- coll-get
+  "Treats coll [:key1 :val1 :key2 :val2] as a map and gets the
+   value corresponding tot he desired key."
+  [m k]
+  (->> m
+       (partition 2)
+       (filter #(= k (first %)))
+       ; first filter result
+       first
+       ; value of the (key, value) tuple
+       second))
+
+(defn get-in
+  "Get-in for generalized maps (either maps or colls of map
+   entries."
+  [m ks]
+  (loop [k (first ks)
+         r (rest ks)
+         c m]
+    (cond
+      (nil? k) c
+      (nil? c) nil
+      (map? c) (recur (first r) (rest r) (get c k))
+      :else    (recur (first r) (rest r) (coll-get c k)))))
+
+(defn map-to-vals
+  "Given keys and a val function, return a map from each key
+   to the corresponding val."
+  [val-fn keys]
+  (->> keys
+       (map
+         (fn [k]
+           [k (val-fn k)]))
+       (into {})))

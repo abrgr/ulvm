@@ -2,6 +2,7 @@
   "ulvm.compiler tests"
   (:require [ulvm.compiler :as c]
             [ulvm.core :as ucore]
+            [ulvm.scopes :as scopes]
             [cats.monad.either :as e]
             [cats.core :as m]
             [clojure.java.io :as io]
@@ -17,13 +18,19 @@
 
 (t/deftest module-for-invocation
   (st/instrument (st/instrumentable-syms 'ulvm))
-  (let [mod {:ulvm.core/mod-combinator-name :nop,
+  (let [scope (reify scopes/Scope
+                (-stop [_ _] (e/right nil))
+                (-write-dependencies [_ _ _] (e/right nil))
+                (-get-config [_ _ _] (e/right nil))
+                (-get-module-config [_ _ _ _] (e/right nil))
+                (-get-implicit-modules [_ _ _] (e/right nil)))
+        mod {:ulvm.core/mod-combinator-name :nop,
              :ulvm.core/mod-descriptor {},
              :ulvm.core/config {}}
         mods {:scope {:mod mod}}
         scope-name :scope
         inv        (s/conform ::ucore/flow-invocation '((:mod scope) {:arg1 x}))
-        m-for-inv (@#'c/module-for-invocation mods scope-name inv)]
+        m-for-inv (@#'c/module-for-invocation mods scope-name scope inv)]
     (t/is (= scope-name (:scope m-for-inv)))
     (t/is (= mod (:mod m-for-inv)))))
 
