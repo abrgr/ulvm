@@ -179,7 +179,7 @@
   "The module that the given invocation references.
    A scope-name is used to disambiguate references to
    local modules."
-  [mods scope-name scope inv]
+  [prj mods scope-name scope scope-cfg inv]
   (let [inv-mod     (->> [(:invocation-module inv)]
                          (into {}))
         scope-mod      (:scope-module inv-mod)
@@ -194,16 +194,18 @@
                            keyword)
         module         (get-in mods [mod-scope-name module-name])]
     {:mod          module
-     :mod-name     (-> module-name str symbol)
+     :mod-name     (->> module-name
+                        str
+                        (resolve-name prj scope scope-cfg))
      :scope        mod-scope-name}))
 
 (defn- enhance-invocations
-  [prj mods scope-name scope invs]
+  [prj mods scope-name scope scope-cfg invs]
   (->> invs
        (map
          (fn [[n inv]]
            [n 
-            (-> (module-for-invocation mods scope-name scope inv)
+            (-> (module-for-invocation prj mods scope-name scope scope-cfg inv)
                 (merge {:inv         inv}))]))
        (filter
          #(= scope-name (:scope (second %))))
@@ -275,7 +277,7 @@
                            named-invocations)
         deps          (invocation-dependency-graph invs)
         inverse-deps  (u/flip-map deps)
-        enhanced-invs (enhance-invocations proj mods scope-name scope invs)
+        enhanced-invs (enhance-invocations proj mods scope-name scope scope-cfg invs)
         ; TODO: this is wrong - we need something more
         ;       intelligent to split a flow into steps for a scope
         relevant-invs (->> invs

@@ -3,6 +3,7 @@
   (:require [ulvm.compiler :as c]
             [ulvm.core :as ucore]
             [ulvm.scopes :as scopes]
+            [ulvm.project :as uprj]
             [cats.monad.either :as e]
             [cats.core :as m]
             [clojure.java.io :as io]
@@ -23,14 +24,17 @@
                 (-write-dependencies [_ _ _] (e/right nil))
                 (-get-config [_ _ _] (e/right nil))
                 (-get-module-config [_ _ _ _] (e/right nil))
-                (-get-implicit-modules [_ _ _] (e/right nil)))
+                (-get-implicit-modules [_ _ _] (e/right nil))
+                (-resolve-name [_ _ _ name-parts] (e/right (clojure.string/join "_" name-parts))))
         mod {:ulvm.core/mod-combinator-name :nop,
              :ulvm.core/mod-descriptor {},
              :ulvm.core/config {}}
         mods {:scope {:mod mod}}
         scope-name :scope
+        prj        (uprj/init {} {})
+        scope-cfg  {}
         inv        (s/conform ::ucore/flow-invocation '((:mod scope) {:arg1 x}))
-        m-for-inv (@#'c/module-for-invocation mods scope-name scope inv)]
+        m-for-inv (@#'c/module-for-invocation prj mods scope-name scope scope-cfg inv)]
     (t/is (= scope-name (:scope m-for-inv)))
     (t/is (= mod (:mod m-for-inv)))))
 
