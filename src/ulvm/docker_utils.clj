@@ -125,13 +125,13 @@
   (loop [s []]
     (if (pos? (.remaining buf))
       (recur (conj s (char (.get buf))))
-      (apply str s))))
+      (clojure.string/join s))))
 
 (defn- log-seq
   [log-stream]
   (lazy-seq
    (try
-     (if (.hasNext log-stream)
+     (when (.hasNext log-stream)
        (let [msg     (.next log-stream)
              stream  (.stream msg)
              content (read-buffer (.content msg))
@@ -140,8 +140,7 @@
                                 (= stream (LogMessage$Stream/STDOUT)) :stdout
                                 (= stream (LogMessage$Stream/STDERR)) :stderr
                                 :else                                 :unknown)}]
-         (cons log (log-seq log-stream)))
-       nil)
+         (cons log (log-seq log-stream))))
      ; TODO: Fix docker client so it doesn't throw
      ;       when it hits EOF.
      (catch RuntimeException _ nil))))

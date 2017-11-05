@@ -14,13 +14,13 @@
   "Returns the set of deps that are unique to this invocation
    among all invocations in invs"
   [deps inverse-deps invs inv-name]
-  (let [remaining-invs (into #{} invs)]
+  (let [remaining-invs (set invs)]
     (->> (get deps inv-name) ; a b
          (filter
            #(->> (get inverse-deps %) ; b c
                  (some remaining-invs)
                  (not)))
-         (into #{}))))
+         set)))
 
 (defn- gen-block
   "Generate a block"
@@ -30,17 +30,17 @@
     (let [bindings      (->> names
                              (map #(str "invoke-" %))
                              (interleave (map symbol names))
-                             (into []))
+                             vec)
           direct-deps   (->> names
                              (map #(get deps %))
-                             (map #(into [] %))
+                             (map vec)
                              (flatten))
           indirect-deps (->> inner-blocks
                              (map :depends-on)
-                             (map #(into [] %))
+                             (map vec)
                              (flatten))
           all-deps      (->> (concat direct-deps indirect-deps)
-                             (into #{})
+                             set
                              (#(cset/difference % names)))]
       {:provides   names
        :depends-on all-deps
@@ -65,14 +65,14 @@
               {possible-blocks  true
                remaining-blocks false} (u/pred-partition #(contains? (:provides %) inv-name) blocks)
               block           (cond
-                               (empty? possible-blocks)              (gen-block deps inverse-deps #{inv-name})
-                               (not (empty? (rest possible-blocks))) (throw "BAD") ; TODO: what do we do here?
-                               :else                                 (first possible-blocks))
+                               (empty? possible-blocks)     (gen-block deps inverse-deps #{inv-name})
+                               (seq (rest possible-blocks)) (throw "BAD") ; TODO: what do we do here?
+                               :else                        (first possible-blocks))
               ; 2. Gather the set of dependencies of inv that do
               ;    not appear as dependencies of any other
               ;    invocation further "up" the invocation graph. 
               ;    We label these unique-deps.
-              unique-deps (get-unique-deps deps inverse-deps (into #{} next-remaining-invs) inv-name)]
+              unique-deps (get-unique-deps deps inverse-deps (set next-remaining-invs) inv-name)]
                 ; unique-deps is the set of dependencies that the
                 ; block we are about to create will provide.
                 ; We re-label unique-deps provided-vals.
@@ -81,8 +81,7 @@
                 ; gather those blocks that depend on provided-vals,
                 ; including block, created above, labeling this set inner-blocks.
                 {inner-blocks     true
-                 remaining-blocks false } (->> remaining-blocks
-                                               (u/pred-partition #(some unique-deps (:depends-on %))))
+                 remaining-blocks false } (u/pred-partition #(some unique-deps (:depends-on %)) remaining-blocks)
                 result-block  (if (empty? provided-vals)
                                 block
                                 ; If provided-vals is not empty, we construct a block,

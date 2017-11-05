@@ -10,7 +10,8 @@
                 [funcool/cats "2.1.0"]
                 [org.clojure/tools.cli "0.3.5"]
                 [org.clojure/core.logic "0.8.11"]]
- :plugins [[lein-cljfmt "0.5.6"]]
+ :plugins [[lein-cljfmt "0.5.6"]
+           [lein-kibit "0.1.5"]]
  :main ^:skip-aot ulvm.cli
  :target-path "target/%s"
  :profiles {:uberjar {:aot :all}})

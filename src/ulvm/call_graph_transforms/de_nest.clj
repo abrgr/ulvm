@@ -10,7 +10,7 @@
    #(not-empty (get % :body))
    #(get % :body)
    (fn [x children]
-     (assoc x :body (into [] children)))
+     (assoc x :body (vec children)))
    root))
 
 (defn- z-insert-all
