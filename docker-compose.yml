@@ -7,7 +7,22 @@ services:
     volumes:
      - .:/usr/src/app
      - /var/run/docker.sock:/var/run/docker.sock
-networks:
-  default:
-    external:
-      name: 'bridge'
+    network_mode: "bridge"
+  repl:
+    build:
+      context: .
+    image: ulvm:latest
+    volumes:
+     - .:/usr/src/app
+     - /var/run/docker.sock:/var/run/docker.sock
+    command: "lein repl :headless :host 0.0.0.0 :port 7888"
+    ports:
+     - "7888:7888"
+    network_mode: "bridge"
+  js-sync-mod-combinator:
+    build:
+      context: ./examples/mod-combinators/js-sync
+    image: ulvm-js-sync:latest
+    volumes:
+     - ./examples/mod-combinators/js-sync:/usr/src/app
+    network_mode: "bridge"
