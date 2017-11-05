@@ -25,6 +25,7 @@
   (st/instrument (st/instrumentable-syms ['ulvm 'b]))
   (let [g (b/build-call-graph
             (uprj/init {} {})
+            :test-scope
             (reify scopes/Scope
               (-stop [_ _] (e/right nil))
               (-write-dependencies [_ _ _] (e/right nil))
@@ -53,6 +54,7 @@
   (st/instrument (st/instrumentable-syms ['ulvm 'b]))
   (let [g (b/build-call-graph
             (uprj/init {} {})
+            :test-scope
             (reify scopes/Scope
               (-stop [_ _] (e/right nil))
               (-write-dependencies [_ _ _] (e/right nil))
@@ -62,23 +64,33 @@
             :test-flow
             {'b #{'a} 'c #{'b 'a} 'a #{'x}}
             {:mod-combinator-cfgs
-              {:sync {:attrs {::ucore/result-in-invocation-block true}}}}
-            {'a {:scope :test-flow
-                 :mod   {::ucore/mod-combinator-name :sync
-                         ::ucore/mod-descriptor      {}}
-                 :inv   {}}
-             'b {:scope :test-flow
-                 :mod   {::ucore/mod-combinator-name :sync
-                         ::ucore/mod-descriptor      {}}
-                 :inv   {}}
-             'c {:scope :test-flow
-                 :mod   {::ucore/mod-combinator-name :sync
-                         ::ucore/mod-descriptor      {}}
-                 :inv   {}}
-             'x {:scope :test-flow
-                 :mod   {::ucore/mod-combinator-name :no-sync
-                         ::ucore/mod-descriptor      {}}
-                 :inv   {}}}
+              {:test-scope
+               {:sync
+                {:attrs {::ucore/result-in-invocation-block true}}}}}
+            {'a {:scope        :test-flow
+                 :mod          {::ucore/mod-combinator-name :sync
+                                ::ucore/mod-descriptor      {}}
+                 :result-names {:*default* 'a-result}
+                 :mod-name     'a
+                 :inv          {}}
+             'b {:scope        :test-flow
+                 :mod          {::ucore/mod-combinator-name :sync
+                                ::ucore/mod-descriptor      {}}
+                 :result-names {:*default* 'b-result}
+                 :mod-name     'b
+                 :inv          {}}
+             'c {:scope        :test-flow
+                 :mod          {::ucore/mod-combinator-name :sync
+                                ::ucore/mod-descriptor      {}}
+                 :result-names {:*default* 'c-result}
+                 :mod-name     'c
+                 :inv          {}}
+             'x {:scope        :test-flow
+                 :mod          {::ucore/mod-combinator-name :no-sync
+                                ::ucore/mod-descriptor      {}}
+                 :result-names {:*default* 'x-result}
+                 :mod-name     'c
+                 :inv          {}}}
             ['x 'a 'b 'c])]
     (is (e/right? g))
     (m/fmap #(is (= %

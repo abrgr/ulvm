@@ -46,7 +46,7 @@
 
 (defprotocol ModCombinator
   (-block-with-results
-    [this prj invocations body]
+    [this prj config invocations body]
     "Generates an AST for a scope in which the results of
      the invocations are available and in which body 
      is included (body uses the results).")
@@ -58,8 +58,8 @@
   "Generates an AST for a scope in which the results of
    the invocations are available and in which body 
    is included (body uses the results)."
-  [this prj invocations body]
-  (-block-with-results this prj invocations body))
+  [this prj config invocations body]
+  (-block-with-results this prj config invocations body))
 
 (defn get-mod-combinator-config
   "Returns the config for this combinator."

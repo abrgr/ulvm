@@ -118,8 +118,17 @@
 
 (s/def ::inv map?) ; TODO: this map is the result of conforming a uprj/flow-invocation
 
+(s/def ::mod-name symbol?)
+
+(s/def ::result-names
+  (s/nilable (s/map-of keyword? symbol?)))
+
 (s/def ::enhanced-invocation
-  (s/keys :req-un [::scope ::mod ::inv]))
+  (s/keys :req-un [::scope
+                   ::mod
+                   ::inv
+                   ::result-names
+                   ::mod-name]))
 
 (s/fdef build-call-graph
         :args (s/cat :prj         ::uprj/project

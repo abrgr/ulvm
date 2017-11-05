@@ -21,8 +21,11 @@
                  :body []}]}]
        (d/transform
          {}
+         :test-scope
          {:mod-combinator-cfgs
-           {:sync {:attrs {::ucore/result-in-invocation-block true}}}}
+           {:test-scope
+            {:sync
+             {:attrs {::ucore/result-in-invocation-block true}}}}}
          {'a {:scope :test-scope
               :mod   {::ucore/mod-combinator-name :sync
                       ::ucore/mod-descriptor      {}}

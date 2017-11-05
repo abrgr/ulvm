@@ -156,19 +156,18 @@
         explicits (-> (uprj/get-prj-ent prj ::ucore/scopes scope-name)
                       (get ::ucore/modules))
         all-mods  (merge implicits explicits)]
-    (->>
-      (map
-        (fn [[n m]]
-          [n
-           (->>
-             (scopes/get-module-config
-               scope
-               prj
-               (::ucore/mod-descriptor m)
-               (get m ::ucore/config {}))
-             (assoc m ::ucore/config))])
-        all-mods)
-      (into {}))))
+    (->> all-mods
+         (map
+           (fn [[n m]]
+             [n
+              (->>
+                (scopes/get-module-config
+                  scope
+                  prj
+                  (::ucore/mod-descriptor m)
+                  (get m ::ucore/config {}))
+                (assoc m ::ucore/config))]))
+         (into {}))))
 
 (defn- module-for-invocation
   "The module that the given invocation references.
@@ -188,8 +187,12 @@
                              local-mod)
                         keyword)
         module      (get-in mods [scope module-name])]
-    {:mod   module
-     :scope scope}))
+    ; TODO: let the scope determine the names
+    {:mod          module
+     :mod-name     (-> module-name str symbol)
+     :result-names (get-in module [::ucore/config
+                                   ::ucore/results])
+     :scope        scope}))
 
 (defn- enhance-invocations
   [mods scope-name invs]
@@ -198,7 +201,8 @@
          (fn [[n inv]]
            [n 
             (-> (module-for-invocation mods scope-name inv)
-                (merge {:inv inv}))]))
+                (merge {:inv         inv
+                        :result-name n}))]))
        (filter
          #(= scope-name (:scope (second %))))
        (into {})))
