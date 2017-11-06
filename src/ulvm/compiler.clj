@@ -297,24 +297,34 @@
        (into {})))
 
 (defn- gen-block-ast
-  [block]
-  ; TODO: this needs to interact with module combinators
-  (let [names    (get block :provides)
-        bindings (->> names
-                      (map #(str "invoke-" %))
-                      (interleave (map symbol names))
-                      (into []))
-        body     (gen-ast (get block :body))]
-    `(~'let ~bindings (do ~@body))))
+  [prj graph-cfg mod-combinators block]
+  (let [{:keys [provides
+                invs
+                depends-on
+                body]}      block
+        body-ast            (gen-ast body)
+        mc-name             (->> invs
+                                 first  ; the first [name, inv]
+                                 second ; the inv
+                                 ::mod
+                                 ::mod-combinator-name)
+        mc                  (get mod-combinators mc-name)
+        mc-cfg              (get-in graph-cfg [:mod-combinator-cfgs mc-name])]
+    (uprj/block-with-results
+      mc
+      prj
+      mc-cfg
+      (vals invs)
+      body-ast)))
 
 (defn- gen-ast
   "Generate an AST given a block graph"
-  [blocks]
-  (map gen-block-ast blocks))
+  [prj graph-cfg mod-combinators blocks]
+  (map (partial gen-block-ast prj graph-cfg mod-combinators) blocks))
 
 (defn- build-flow-in-scope
   "Builds the portion of a flow contained in a scope"
-  [proj graph-cfg mods scope-name scope scope-cfg flow-name flow]
+  [proj graph-cfg mod-combinators mods scope-name scope scope-cfg flow-name flow]
   (let [invs          (->> (get flow :invocations)
                            named-invocations)
         deps          (invocation-dependency-graph invs)
@@ -345,11 +355,12 @@
               inverse-deps
               graph-cfg
               named-invs)
-            (#(e/right (gen-ast %))))))
+            (#(e/right (gen-ast proj graph-cfg mod-combinators %))))))
 
 (s/fdef build-flow-in-scope
         :args (s/cat :prj        ::uprj/project
                      :graph-cfg  (s/keys :req-un [::mod-combinator-cfgs])
+                     :mcs        (s/map-of keyword? #(satisfies? uprj/ModCombinator %))
                      :mods       (s/map-of keyword?
                                            (s/map-of keyword?
                                                      ::ucore/module))
@@ -362,13 +373,13 @@
 
 (defn- build-flows-in-scope
   "Builds all flows for the given scope."
-  [proj graph-cfg mods scope-name scope scope-cfg]
+  [proj graph-cfg mod-combinators mods scope-name scope scope-cfg]
   (->> (get-in proj [:entities ::ucore/flows])
        (reduce
          (fn [prj [flow-name flow]]
             (->> flow
                  (uprj/canonical-flow)
-                 (build-flow-in-scope prj graph-cfg mods scope-name scope scope-cfg flow-name)
+                 (build-flow-in-scope prj graph-cfg mod-combinators mods scope-name scope scope-cfg flow-name)
                  (uprj/set-env prj (k/build-flow-in-scope-keypath scope-name flow-name))))
          proj)))
 
@@ -378,6 +389,7 @@
 (s/fdef build-flows-in-scope
         :args (s/cat :prj        ::uprj/project
                      :graph-cfg  (s/keys :req-un [::mod-combinator-cfgs])
+                     :mcs        (s/map-of keyword? #(satisfies? uprj/ModCombinator %))
                      :mods       (s/map-of keyword?
                                            (s/map-of keyword?
                                                      ::ucore/module))
@@ -445,7 +457,7 @@
   (->
     (futil/mlet e/context
                 [graph-cfg {:mod-combinator-cfgs mod-combinator-cfgs}
-                 built-prj (build-flows-in-scope prj graph-cfg mods scope-name scope scope-cfg)]
+                 built-prj (build-flows-in-scope prj graph-cfg mod-combinators mods scope-name scope scope-cfg)]
                 (uprj/set-env
                   built-prj
                   (k/scope-deps-keypath scope-name)

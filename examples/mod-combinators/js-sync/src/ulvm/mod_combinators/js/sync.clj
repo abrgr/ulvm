@@ -10,6 +10,7 @@
 
 (c/defroutes routes
   (c/POST "/cfg" {:keys [params]}
+    (println "Processing /cfg :" params)
     {:status  200
      :headers default-headers
      :body    (pr-str
@@ -19,6 +20,7 @@
                   true))})
   
   (c/POST "/block" {:keys [params]}
+    (println "Processing /block :" params)
     (let [res (ast/gen params)]
       (if (contains? res :err)
         {:status  400

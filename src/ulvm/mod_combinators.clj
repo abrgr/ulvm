@@ -40,11 +40,11 @@
 (defmethod uprj/make-mod-combinator :default
   [proj combinator-name combinator-entity]
   (futil/mlet e/context
-              [p-el         (uprj/deref-runnable-env proj combinator-entity)
-               prj          (:prj p-el)
-               runnable-env (:el p-el)]
+              [p-el   (uprj/deref-runnable-env proj combinator-entity)
+               re-rep (:el p-el)
+               prj    (renv/launch (:prj p-el) re-rep)]
     (uprj/set
      prj
      :mod-combinators
      combinator-name
-     (e/right (CustomModCombinator. runnable-env)))))
+     (e/right (CustomModCombinator. re-rep)))))

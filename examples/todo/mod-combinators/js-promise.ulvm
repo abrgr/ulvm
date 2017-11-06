@@ -5,18 +5,27 @@
    {:org.ulvm.mod-combinators.js-promise/js-promise
     {:ulvm.core/artifact-loader
      {:ulvm.core/builtin-artifact-loader-name :ulvm.artifact-loaders/docker-hub
-      :ulvm.core/artifact-descriptor {:image "nodejs-scope:1.0.0"}}
+      :ulvm.core/artifact-descriptor {:image "ulvm-js-sync:latest"}}
      :ulvm.core/runner
      {:ulvm.core/builtin-runner-name :ulvm.runners/docker-container
       :ulvm.core/runner-descriptor
       {:image (ulvm.core/from-env :image)}}}}
    :ulvm.core/exported-flows
-   {:org.ulvm.mod-combinators.js-promise/get-config
+   {:org.ulvm.mod-combinators.js-promise/block-with-results
     {:ulvm.core/runner
      {:ulvm.core/builtin-runner-name :ulvm.runners/http
       :ulvm.core/runner-descriptor {:method :post
-                                    :url (ulvm.core/eval (str "http://" (ulvm.core/from-env :org.ulvm.mod-combinators.js-promise/js-promise :container-ip) ":8888/get-config"))
-                                    :body (ulvm.core/eval (str *params*))
+                                    :url (ulvm.core/eval (str "http://" (ulvm.core/from-env :org.ulvm.mod-combinators.js-promise/js-promise :container-ip) ":8080/block"))
+                                    :body (ulvm.core/eval (pr-str *params*))
                                     :headers {"content-type" "application/edn"}
                                     :acceptable-statuses #{200}}}
-     :ulvm.core/ideal-flows #{:org.ulvm.mod-combinators/get-config}}}})
+     :ulvm.core/ideal-flows #{:org.ulvm.mod-combinator/block-with-results}}
+    :org.ulvm.mod-combinators.js-promise/get-config
+    {:ulvm.core/runner
+     {:ulvm.core/builtin-runner-name :ulvm.runners/http
+      :ulvm.core/runner-descriptor {:method :post
+                                    :url (ulvm.core/eval (str "http://" (ulvm.core/from-env :org.ulvm.mod-combinators.js-promise/js-promise :container-ip) ":8080/cfg"))
+                                    :body (ulvm.core/eval (pr-str *params*))
+                                    :headers {"content-type" "application/edn"}
+                                    :acceptable-statuses #{200}}}
+     :ulvm.core/ideal-flows #{:org.ulvm.mod-combinator/get-config}}}})

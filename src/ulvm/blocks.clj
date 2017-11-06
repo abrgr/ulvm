@@ -109,28 +109,6 @@
           r
           call-graph-transformers)))
 
-(s/def ::mod ::ucore/module)
-
-(s/def ::scope ::ucore/name)
-
-(s/def ::inv map?) ; TODO: this map is the result of conforming a uprj/flow-invocation
-
-(s/def ::mod-name symbol?)
-
-(s/def ::result-names
-  (s/map-of keyword? symbol?))
-
-(s/def ::arg-names
-  (s/map-of keyword? symbol?))
-
-(s/def ::enhanced-invocation
-  (s/keys :req-un [::scope
-                   ::mod
-                   ::inv
-                   ::result-names
-                   ::arg-names
-                   ::mod-name]))
-
 (s/fdef build-call-graph
         :args (s/cat :prj          ::uprj/project
                      :scope-name   keyword?
@@ -139,5 +117,5 @@
                      :deps         (s/map-of symbol? (s/coll-of symbol?))
                      :inverse-deps (s/map-of symbol? (s/coll-of symbol?))
                      :graph-cfg    map?
-                     :named-invs   (s/map-of symbol? ::enhanced-invocation)
+                     :named-invs   (s/map-of symbol? ::uprj/enhanced-invocation)
                      :invocations  (s/coll-of symbol?)))

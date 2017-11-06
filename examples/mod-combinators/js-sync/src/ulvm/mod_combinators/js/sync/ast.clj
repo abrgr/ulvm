@@ -14,10 +14,6 @@
            (map #(map vector % (range)))
            (map (partial into {}))))))
 
-(defn- gen-arg-ref
-  [ref]
-  nil)
-
 (defn- gen-arg-ast
   [mod arg-names args]
   (let [arg-pos (get-arg-positions mod)]
@@ -26,10 +22,11 @@
          (map
            (fn [[name arg]]
              {:pos (get arg-pos name)
-              :val (cond
-                     (contains? arg :ref) (get arg :ref)
-                     ; if we have data, we assume it's a valid ast
-                     (contains? arg :data) (get arg :data))}))
+              :val (if (contains? arg :data)
+                       ; if we have data, we assume it's a valid ast
+                       (get arg :data)
+                       ; if we're using a reference, we look up the name
+                       (get arg-names name))}))
          ; sort by :pos
          (sort-by :pos)
          ; get a list of vals in order
@@ -38,7 +35,8 @@
 (defn- gen-inv-ast
   [{:keys [result-names arg-names mod mod-name inv]}]
   (let [result-name (get result-names :*default*)
-        args (get inv :args)]
+        args        (get-in inv [:inv :args])
+        arg-names   (get inv :arg-names)]
     `(:assign
        ~result-name
        (:invoke

@@ -66,22 +66,34 @@
   [this prj config]
   (-get-mod-combinator-config this prj config))
 
-(s/def ::result-name keyword?)
-(s/def ::arguments
-  (s/map-of keyword?
-            (s/cat :sub-result-name keyword?
-                   :result-name     symbol?)))
+(s/def ::mod ::ucore/module)
 
-(s/def ::invocation
-  (s/keys :req-un [::result-name
-                   ::ucore/module-combinator
-                   ::arguments]))
+(s/def ::scope ::ucore/name)
+
+(s/def ::inv map?) ; TODO: this map is the result of conforming a uprj/flow-invocation
+
+(s/def ::mod-name symbol?)
+
+(s/def ::result-names
+  (s/map-of keyword? symbol?))
+
+(s/def ::arg-names
+  (s/map-of keyword? symbol?))
+
+(s/def ::enhanced-invocation
+  (s/keys :req-un [::scope
+                   ::mod
+                   ::inv
+                   ::result-names
+                   ::arg-names
+                   ::mod-name]))
 
 (s/fdef block-with-results
         :args (s/cat :combinator  #(satisfies? ModCombinator %)
                      :prj         ::project
-                     :invocations (s/+ ::invocation)
-                     :body        su/any)
+                     :config      map?
+                     :invocations (s/+ ::enhanced-invocation)
+                     :body        coll?)
         :ret e/either?)
 
 (s/fdef get-mod-combinator-config
