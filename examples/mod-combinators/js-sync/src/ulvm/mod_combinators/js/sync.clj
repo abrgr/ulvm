@@ -26,7 +26,7 @@
          :body    (get res :err)}
         {:status  200
          :headers default-headers
-         :body    (get res :ast)})))
+         :body    (get res :ast)}))))
 
 (defn -main
   [& _]

@@ -19,6 +19,16 @@ services:
     ports:
      - "7888:7888"
     network_mode: "bridge"
+  js-sync-mod-combinator-repl:
+    build:
+      context: ./examples/mod-combinators/js-sync
+    image: ulvm-js-sync:latest
+    volumes:
+     - ./examples/mod-combinators/js-sync:/usr/src/app
+    command: "lein repl :headless :host 0.0.0.0 :port 7889"
+    ports:
+     - "7889:7889"
+    network_mode: "bridge"
   js-sync-mod-combinator:
     build:
       context: ./examples/mod-combinators/js-sync

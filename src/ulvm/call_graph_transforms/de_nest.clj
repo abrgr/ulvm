@@ -26,6 +26,7 @@
   ; our actual top-level blocks
   (loop [loc (z/next
                (block-zip {:provides   #{}
+                           :invs       {}
                            :depends-on #{}
                            :body       blocks}))]
     (if (z/end? loc)
@@ -33,6 +34,7 @@
       (let [n    (z/node loc)
             {body     :body
              deps     :depends-on
+             invs     :invs
              provides :provides}   n]
         (->
           (if (in-same-block provides)
@@ -40,6 +42,7 @@
               (z-insert-all body)
               (z/replace
                 {:provides   provides
+                 :invs       invs
                  :depends-on deps
                  :body       []}))
             loc)

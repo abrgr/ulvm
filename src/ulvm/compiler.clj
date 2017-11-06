@@ -126,7 +126,7 @@
           (= :ref arg-type)))
       (map
         (fn [[_ [_ [ref-arg-type arg]]]]
-          (if (= ::ucore/default-ref-arg ref-arg-type)
+          (if (= :default-ref-arg ref-arg-type)
             arg
             (:result arg))))
       (into #{}))))
@@ -217,7 +217,7 @@
        (map #(get-in enhanced-invs [% :inv :args]))
        (map vals)
        (apply concat)
-       (map #(u/get-in % [:ref ::ucore/named-ref-arg :sub-result]))
+       (map #(u/get-in % [:ref :named-ref-arg :sub-result]))
        (filter some?)
        (concat [:*default*])))
 
@@ -254,6 +254,48 @@
                  inv)})]))
        (into {})))
 
+(defn- add-arg-names
+  "Resolve the names of the arguments to the invocations."
+  [flow-args enhanced-invs]
+  (->> enhanced-invs
+       (map
+         (fn [[n inv]]
+           [n
+            (merge 
+              inv
+              {:arg-names
+               (->> (u/get-in inv [:inv :args])
+                    ; get a list of nils or {:arg :res :sub-res}
+                    (map
+                      (fn [[arg-name arg]]
+                        (let [def-ref-arg   (u/get-in arg [:ref :default-ref-arg])
+                              named-ref-arg (u/get-in arg [:ref :named-ref-arg])]
+                          (cond
+                            (contains? flow-args def-ref-arg)
+                            {:arg arg-name
+                             :resolved def-ref-arg}
+                            (some? def-ref-arg)
+                            {:arg arg-name
+                             :res def-ref-arg
+                             :sub :*default*}
+                            (some? named-ref-arg)
+                            {:arg arg-name
+                             :res (u/get-in named-ref-arg [:result])
+                             :sub (u/get-in named-ref-arg [:sub-result])}))))
+                    (filter some?)
+                    ; get [[arg arg-name] ...]
+                    (map
+                      (fn [{:keys [arg res sub resolved]}]
+                        [arg
+                         (if (some? resolved)
+                           resolved
+                           (get-in
+                             enhanced-invs
+                             [res :result-names sub]))]))
+                    ; get {arg arg-name, ...}
+                    (into {}))})]))
+       (into {})))
+
 (defn- gen-block-ast
   [block]
   ; TODO: this needs to interact with module combinators
@@ -284,8 +326,16 @@
                            (filter
                              #(= (get-in enhanced-invs [(key %) :scope]) scope-name))
                            (into {}))
-        named-invs         (add-result-names proj scope-name scope scope-cfg inverse-deps enhanced-invs)]
-    (m/->>= (ordered-invocations relevant-invs deps (::ucore/args (meta flow)))
+        flow-args          (::ucore/args (meta flow))
+        named-invs         (->> enhanced-invs
+                                (add-result-names
+                                  proj
+                                  scope-name
+                                  scope
+                                  scope-cfg
+                                  inverse-deps)
+                                (add-arg-names (set flow-args)))]
+    (m/->>= (ordered-invocations relevant-invs deps flow-args)
             (b/build-call-graph
               proj
               scope-name

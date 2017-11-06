@@ -24,14 +24,10 @@
 
 (defn- gen-block
   "Generate a block"
-  ([deps inverse-deps names]
-    (gen-block deps inverse-deps names []))
-  ([deps inverse-deps names inner-blocks]
-    (let [bindings      (->> names
-                             (map #(str "invoke-" %))
-                             (interleave (map symbol names))
-                             vec)
-          direct-deps   (->> names
+  ([deps inverse-deps named-invs names]
+    (gen-block deps inverse-deps named-invs names []))
+  ([deps inverse-deps named-invs names inner-blocks]
+    (let [direct-deps   (->> names
                              (map #(get deps %))
                              (map vec)
                              (flatten))
@@ -41,8 +37,12 @@
                              (flatten))
           all-deps      (->> (concat direct-deps indirect-deps)
                              set
-                             (#(cset/difference % names)))]
+                             (#(cset/difference % names)))
+          name-set      (set names)]
       {:provides   names
+       :invs       (->> named-invs
+                        (filter #(contains? name-set (first %)))
+                        (into {}))
        :depends-on all-deps
        :body       inner-blocks})))
 
@@ -54,10 +54,9 @@
          blocks         []]
     (if (empty? remaining-invs)
         (e/right blocks)
-              ;At each invocation, labeled inv, we:
+              ;At each invocation, we:
         (let [inv-name            (first remaining-invs)
               next-remaining-invs (rest remaining-invs)
-              inv                 (get named-invs inv-name)
               ; 1. If we have already created a block in which the
               ;    result of inv is available, we label that
               ;    block.  Otherwise, we create a block, labeled
@@ -65,7 +64,7 @@
               {possible-blocks  true
                remaining-blocks false} (u/pred-partition #(contains? (:provides %) inv-name) blocks)
               block           (cond
-                               (empty? possible-blocks)     (gen-block deps inverse-deps #{inv-name})
+                               (empty? possible-blocks)     (gen-block deps inverse-deps named-invs #{inv-name})
                                (seq (rest possible-blocks)) (throw "BAD") ; TODO: what do we do here?
                                :else                        (first possible-blocks))
               ; 2. Gather the set of dependencies of inv that do
@@ -91,7 +90,7 @@
                                 ; We say that the dependencies of result-block are the union of the
                                 ; dependencies of every item in provided-vals and those dependencies
                                 ; of inner-blocks that are not in provided-vals.
-                                (gen-block deps inverse-deps provided-vals (conj inner-blocks block)))
+                                (gen-block deps inverse-deps named-invs provided-vals (conj inner-blocks block)))
                 next-blocks  (conj remaining-blocks result-block)]
             (recur next-remaining-invs next-blocks))))))
 
@@ -121,11 +120,15 @@
 (s/def ::result-names
   (s/map-of keyword? symbol?))
 
+(s/def ::arg-names
+  (s/map-of keyword? symbol?))
+
 (s/def ::enhanced-invocation
   (s/keys :req-un [::scope
                    ::mod
                    ::inv
                    ::result-names
+                   ::arg-names
                    ::mod-name]))
 
 (s/fdef build-call-graph

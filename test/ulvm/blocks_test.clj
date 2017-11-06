@@ -24,6 +24,43 @@
 (deftest build-call-graph-test
   (st/instrument (st/instrumentable-syms ['ulvm 'b]))
   (let [deps {'b #{'a} 'c #{'b 'a}}
+        inv-a {:scope        :test-scope
+               :mod          {::ucore/mod-combinator-name :js-sync
+                              ::ucore/mod-descriptor       {}}
+               :inv          {:invocation-module
+                              [:scope-module {:module-name :a
+                                              :scope 'test-scope}]
+                              :args {}
+                              :name {:_ :as, :name 'a}}
+               :result-names {}
+               :arg-names    {}
+               :mod-name     'A}
+        inv-b {:scope        :test-scope
+               :mod          {::ucore/mod-combinator-name :js-sync
+                              ::ucore/mod-descriptor       {}}
+               :inv         {:invocation-module
+                             [:scope-module {:module-name :b
+                                             :scope 'test-scope}]
+                             :args {:username
+                                    [:ref [:ulvm.core/default-ref-arg 'a]]}
+                             :name {:_ :as, :name 'a}}
+               :result-names {}
+               :arg-names    {}
+               :mod-name     'A}
+        inv-c {:scope        :test-scope
+               :mod          {::ucore/mod-combinator-name :js-sync
+                              ::ucore/mod-descriptor       {}}
+               :inv          {:invocation-module
+                              [:scope-module {:module-name :c
+                                              :scope 'test-scope}]
+                              :args {:username
+                                     [:ref [:ulvm.core/default-ref-arg 'a]]
+                                     :password
+                                     [:ref [:ulvm.core/default-ref-arg 'b]]}
+                              :name {:_ :as, :name 'a}}
+               :result-names {}
+               :arg-names    {}
+               :mod-name     'A}
         g (b/build-call-graph
             (uprj/init {} {})
             :test-scope
@@ -37,24 +74,58 @@
             deps
             (utils/flip-map deps)
             {}
-            {}
+            {'a inv-a
+             'b inv-b
+             'c inv-c}
             ['a 'b 'c])]
     (is (e/right? g))
     (m/fmap #(is (= %
-                    '[{:provides #{a}
-                       :depends-on #{}
-                       :body [
-                         {:provides #{b}
-                          :depends-on #{a}
-                          :body [
-                            {:provides #{c}
-                             :depends-on #{a b}
-                             :body []}]}]}]))
+                    [{:provides #{'a}
+                      :invs {'a inv-a}
+                      :depends-on #{}
+                      :body [
+                        {:provides #{'b}
+                         :invs {'b inv-b}
+                         :depends-on #{'a}
+                         :body [
+                           {:provides #{'c}
+                            :invs {'c inv-c}
+                            :depends-on #{'a 'b}
+                            :body []}]}]}]))
             g)))
 
 (deftest build-call-graph-sync-test
   (st/instrument (st/instrumentable-syms ['ulvm 'b]))
   (let [deps {'b #{'a} 'c #{'b 'a} 'a #{'x}}
+        named-invs 
+          {'a {:scope        :test-flow
+               :mod          {::ucore/mod-combinator-name :sync
+                              ::ucore/mod-descriptor      {}}
+               :result-names {:*default* 'a-result}
+               :arg-names    {}
+               :mod-name     'a
+               :inv          {}}
+           'b {:scope        :test-flow
+               :mod          {::ucore/mod-combinator-name :sync
+                              ::ucore/mod-descriptor      {}}
+               :result-names {:*default* 'b-result}
+               :arg-names    {}
+               :mod-name     'b
+               :inv          {}}
+           'c {:scope        :test-flow
+               :mod          {::ucore/mod-combinator-name :sync
+                              ::ucore/mod-descriptor      {}}
+               :result-names {:*default* 'c-result}
+               :arg-names    {}
+               :mod-name     'c
+               :inv          {}}
+           'x {:scope        :test-flow
+               :mod          {::ucore/mod-combinator-name :no-sync
+                              ::ucore/mod-descriptor      {}}
+               :result-names {:*default* 'x-result}
+               :arg-names    {}
+               :mod-name     'c
+               :inv          {}}}
         g (b/build-call-graph
             (uprj/init {} {})
             :test-scope
@@ -71,43 +142,24 @@
               {:test-scope
                {:sync
                 {:attrs {::ucore/result-in-invocation-block true}}}}}
-            {'a {:scope        :test-flow
-                 :mod          {::ucore/mod-combinator-name :sync
-                                ::ucore/mod-descriptor      {}}
-                 :result-names {:*default* 'a-result}
-                 :mod-name     'a
-                 :inv          {}}
-             'b {:scope        :test-flow
-                 :mod          {::ucore/mod-combinator-name :sync
-                                ::ucore/mod-descriptor      {}}
-                 :result-names {:*default* 'b-result}
-                 :mod-name     'b
-                 :inv          {}}
-             'c {:scope        :test-flow
-                 :mod          {::ucore/mod-combinator-name :sync
-                                ::ucore/mod-descriptor      {}}
-                 :result-names {:*default* 'c-result}
-                 :mod-name     'c
-                 :inv          {}}
-             'x {:scope        :test-flow
-                 :mod          {::ucore/mod-combinator-name :no-sync
-                                ::ucore/mod-descriptor      {}}
-                 :result-names {:*default* 'x-result}
-                 :mod-name     'c
-                 :inv          {}}}
+            named-invs
             ['x 'a 'b 'c])]
     (is (e/right? g))
     (m/fmap #(is (= %
-                    '[{:provides   #{x}
-                       :depends-on #{}
-                       :body       [
-                       {:provides   #{a}
-                        :depends-on #{x}
-                        :body       []}
-                       {:provides   #{b}
-                        :depends-on #{a}
-                        :body       []}
-                       {:provides   #{c}
-                        :depends-on #{a b}
-                        :body       []}]}]))
+                    [{:provides   #{'x}
+                      :invs       {'x (get named-invs 'x)}
+                      :depends-on #{}
+                      :body       [
+                      {:provides   #{'a}
+                       :invs       {'a (get named-invs 'a)}
+                       :depends-on #{'x}
+                       :body       []}
+                      {:provides   #{'b}
+                       :invs       {'b (get named-invs 'b)}
+                       :depends-on #{'a}
+                       :body       []}
+                      {:provides   #{'c}
+                       :invs       {'c (get named-invs 'c)}
+                       :depends-on #{'a 'b}
+                       :body       []}]}]))
             g)))

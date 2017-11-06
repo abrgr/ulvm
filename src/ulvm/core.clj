@@ -61,8 +61,8 @@
    :local-module symbol?))
 
 (s/def ::ref-flow-arg
-  (s/or ::default-ref-arg symbol?
-        ::named-ref-arg (s/cat :sub-result ::name :result symbol?)))
+  (s/or :default-ref-arg symbol?
+        :named-ref-arg (s/cat :sub-result ::name :result symbol?)))
 
 (s/def ::flow-arg
   (s/or :ref   ::ref-flow-arg

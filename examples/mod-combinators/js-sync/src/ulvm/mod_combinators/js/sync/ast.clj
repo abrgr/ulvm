@@ -12,14 +12,14 @@
       merge
       (->> arg-mappings
            (map #(map vector % (range)))
-           (into {})))))
+           (map (partial into {}))))))
 
 (defn- gen-arg-ref
   [ref]
   nil)
 
 (defn- gen-arg-ast
-  [mod args]
+  [mod arg-names args]
   (let [arg-pos (get-arg-positions mod)]
     (->> args
          ; get a list of maps with :pos and :val
@@ -36,15 +36,16 @@
          (map :val))))
 
 (defn- gen-inv-ast
-  [{:keys [result-name mod mod-name inv]}]
-  (let [args (get inv :args)]
+  [{:keys [result-names arg-names mod mod-name inv]}]
+  (let [result-name (get result-names :*default*)
+        args (get inv :args)]
     `(:assign
        ~result-name
        (:invoke
          ~mod-name
-         ~@(gen-arg-ast mod args)))))
+         ~@(gen-arg-ast mod arg-names args)))))
 
-(defn gen-ast
+(defn gen
   "Generates a js ast for the given invocations"
   [{:keys [invocations body]}]
   ; TODO: can also return :err
