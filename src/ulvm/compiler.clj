@@ -439,41 +439,15 @@
                  scope (:scope res)
                  prj   (:prj res)
                  cfg   (scopes/get-config scope prj (get scope-ent ::ucore/config {}))
-                 mods  (scope-modules prj scope scope-ent cfg scope-name)
-                 p-mcs (reduce
-                         (fn [{:keys [prj mcs]} [_ mod]]
-                           (let [mc-name  (::ucore/mod-combinator-name mod)
-                                 {p  :prj
-                                  mc :el} (uprj/get prj :mod-combinators mc-name)]
-                             {:prj p
-                              :mcs (assoc mcs mc-name mc)}))
-                         {:prj prj
-                          :mcs {}}
-                         mods)
-                 p       (:prj p-mcs)
-                 mcs     (:mcs p-mcs)
-                 mc-cfgs (->>
-                           (map
-                             (fn [[n mc]]
-                               (let [mc-ent   (uprj/get-prj-ent p ::ucore/mod-combinators n)
-                                     orig-cfg (get mc-ent ::ucore/config {})
-                                     mc-cfg   (m/bind mc #(uprj/get-mod-combinator-config % p orig-cfg))]
-                                 [n mc-cfg]))
-                             mcs)
-                           (into {}))]
-      
-      {:prj                 (uprj/set-env p (k/make-scope-keypath scope-name) :success)
+                 mods  (scope-modules prj scope scope-ent cfg scope-name)]
+      {:prj                 (uprj/set-env prj (k/make-scope-keypath scope-name) :success)
        :mods                mods
-       :mod-combinators     mcs
-       :mod-combinator-cfgs mc-cfgs
        :scope               scope
        :scope-cfg           cfg})
     (futil/recover-with 
       (fn [v]
         {:prj   (uprj/set-env proj (k/make-scope-keypath scope-name) v)
          :mods                {}
-         :mod-combinators     {}
-         :mod-combinator-cfgs {}
          :scope               nil
          :scope-cfg           nil}))))
 
