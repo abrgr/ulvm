@@ -20,6 +20,7 @@
 (declare ulvm-compile
          build-scopes
          build-scope
+         get-mod-combinators
          make-scope
          gen-ast
          gen-block-ast)
@@ -35,27 +36,28 @@
 
 (defn- make-scopes
   [prj]
-  (reduce
-   (fn [info [scope-name scope-ent]]
-     (let [{:keys [prj
-                   mods
-                   mod-combinators
-                   mod-combinator-cfgs
-                   scope
-                   scope-cfg]} (make-scope (:prj info) scope-name scope-ent)]
-       {:prj                 prj
-        :mods                (-> (:mods info) (merge {scope-name mods}))
-        :mod-combinators     (-> (:mod-combinators info) (merge {scope-name mod-combinators}))
-        :mod-combinator-cfgs (-> (:mod-combinator-cfgs info) (merge {scope-name mod-combinator-cfgs}))
-        :scopes              (-> (:scopes info) (merge {scope-name scope}))
-        :scope-cfgs          (-> (:scope-cfgs info) (merge {scope-name scope-cfg}))}))
-   {:prj                 prj
-    :mods                {}
-    :mod-combinators     {}
-    :mod-combinator-cfgs {}
-    :scopes              {}
-    :scope-cfgs          {}}
-   (get-in prj [:entities ::ucore/scopes])))
+  (futil/mlet e/context
+              [mcs (get-mod-combinators prj)]
+    (let [{:keys [prj
+                  mod-combinators
+                  mod-combinator-cfgs]} mcs]
+      (->> (get-in prj [:entities ::ucore/scopes])
+           (reduce
+            (fn [info [scope-name scope-ent]]
+              (let [{:keys [prj
+                            mods
+                            scope
+                            scope-cfg]}           (make-scope (:prj info) scope-name scope-ent)]
+                {:prj                 prj
+                 :mods                (-> (:mods info) (merge {scope-name mods}))
+                 :scopes              (-> (:scopes info) (merge {scope-name scope}))
+                 :scope-cfgs          (-> (:scope-cfgs info) (merge {scope-name scope-cfg}))}))
+            {:prj                 prj
+             :mods                {}
+             :scopes              {}
+             :scope-cfgs          {}})
+           (merge {:mod-combinators     mod-combinators
+                   :mod-combinator-cfgs mod-combinator-cfgs})))))
 
 (defn- build-scopes
   "Builds all scopes"
@@ -297,30 +299,33 @@
        (into {})))
 
 (defn- gen-block-ast
-  [prj graph-cfg mod-combinators block]
+  [prj graph-cfg mod-combinators flow-args block]
   (let [{:keys [provides
                 invs
                 depends-on
                 body]}      block
-        body-ast            (gen-ast body)
+        body-ast            (gen-ast prj graph-cfg mod-combinators flow-args body)
         mc-name             (->> invs
                                  first  ; the first [name, inv]
                                  second ; the inv
-                                 ::mod
-                                 ::mod-combinator-name)
+                                 :mod
+                                 ::ucore/mod-combinator-name)
         mc                  (get mod-combinators mc-name)
         mc-cfg              (get-in graph-cfg [:mod-combinator-cfgs mc-name])]
-    (uprj/block-with-results
-      mc
-      prj
-      mc-cfg
-      (vals invs)
-      body-ast)))
+    (if (cset/subset? provides flow-args)
+      ; we have no invocation for the flow-args
+      body-ast
+      (uprj/block-with-results
+        mc
+        prj
+        mc-cfg
+        (vals invs)
+        body-ast))))
 
 (defn- gen-ast
   "Generate an AST given a block graph"
-  [prj graph-cfg mod-combinators blocks]
-  (map (partial gen-block-ast prj graph-cfg mod-combinators) blocks))
+  [prj graph-cfg mod-combinators flow-args blocks]
+  (map (partial gen-block-ast prj graph-cfg mod-combinators flow-args) blocks))
 
 (defn- build-flow-in-scope
   "Builds the portion of a flow contained in a scope"
@@ -337,6 +342,7 @@
                              #(= (get-in enhanced-invs [(key %) :scope]) scope-name))
                            (into {}))
         flow-args          (::ucore/args (meta flow))
+        flow-args-set      (set flow-args)
         named-invs         (->> enhanced-invs
                                 (add-result-names
                                   proj
@@ -344,7 +350,7 @@
                                   scope
                                   scope-cfg
                                   inverse-deps)
-                                (add-arg-names (set flow-args)))]
+                                (add-arg-names flow-args-set))]
     (m/->>= (ordered-invocations relevant-invs deps flow-args)
             (b/build-call-graph
               proj
@@ -355,7 +361,7 @@
               inverse-deps
               graph-cfg
               named-invs)
-            (#(e/right (gen-ast proj graph-cfg mod-combinators %))))))
+            (#(e/right (gen-ast proj graph-cfg mod-combinators flow-args-set %))))))
 
 (s/fdef build-flow-in-scope
         :args (s/cat :prj        ::uprj/project
@@ -397,6 +403,32 @@
                      :scope      #(satisfies? scopes/Scope %)
                      :scope-cfg  map?)
         :ret  ::uprj/project)
+
+(defn- get-mod-combinators
+  "Gets mod combinators, launches them, and gets their configs"
+  [proj]
+  (let [p-mcs (reduce
+                (fn [acc [mc-name mc-ent]]
+                  (m/bind acc
+                    (fn [{:keys [prj mcs mc-cfgs]}]
+                      (let [{p    :prj
+                             mc-e :el} (uprj/get prj :mod-combinators mc-name)
+                            orig-cfg (get mc-ent ::ucore/config {})]
+                        (m/bind mc-e
+                          (fn [mc]
+                            (e/right
+                              {:prj     p
+                               :mcs     (assoc mcs mc-name mc)
+                               :mc-cfgs (assoc mc-cfgs mc-name (uprj/get-mod-combinator-config mc p orig-cfg))})))))))
+                (e/right {:prj     proj
+                          :mcs     {}
+                          :mc-cfgs {}})
+                (uprj/get-prj-ent proj ::ucore/mod-combinators))]
+      (m/bind p-mcs
+              (fn [{:keys [prj mcs mc-cfgs]}]
+                {:prj                 prj
+                 :mod-combinators     mcs
+                 :mod-combinator-cfgs mc-cfgs}))))
 
 (defn- make-scope
   "Builds a scope"

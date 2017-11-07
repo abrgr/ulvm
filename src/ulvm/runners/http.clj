@@ -26,8 +26,8 @@
   [prj ctx runner]
   (let [desc                (::ucore/runner-descriptor runner)
         acceptable-statuses (:acceptable-statuses desc)]
-    (util/retrying 100
-                   5 
+    (util/retrying 1000
+                   5
                    retryable-error?
                    @(http/request (conj desc {:as :stream})
                                   (fn [{:keys [status body error]}]

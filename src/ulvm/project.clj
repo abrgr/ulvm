@@ -189,8 +189,10 @@
              :renvs           make-renv}))
 
 (defn get-prj-ent
-  [prj ent-key name]
-  (get-in prj [:entities ent-key name]))
+  ([prj ent-key]
+   (get-in prj [:entities ent-key]))
+  ([prj ent-key name]
+    (get-in prj [:entities ent-key name])))
 
 (defn get-or-make
   "Get or make a project element"

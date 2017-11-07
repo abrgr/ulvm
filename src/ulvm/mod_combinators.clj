@@ -13,21 +13,23 @@
 (deftype CustomModCombinator [renv]
   uprj/ModCombinator
   (-block-with-results [this prj config invocations body]
-    (renv/invoke-ideal-flow
-      prj
-      renv
-      :org.ulvm.mod-combinator/block-with-results
-      {:invocations invocations
-       :config      config
-       :body        body}))
+    (m/->>= (e/right {:invocations invocations
+                      :config      config
+                      :body        body})
+            (renv/invoke-ideal-flow
+              prj
+              renv
+              :org.ulvm.mod-combinator/block-with-results)
+            ((comp m/return first))))
   (-get-mod-combinator-config [this prj config]
     ; TODO: with-fallback is silly here; don't swallow actual errors
     (futil/with-fallback
-      (renv/invoke-ideal-flow
-        prj
-        renv
-        :org.ulvm.mod-combinator/get-config
-        {:config config})
+      (m/->>= (e/right {:config config})
+              (renv/invoke-ideal-flow
+                prj
+                renv
+                :org.ulvm.mod-combinator/get-config)
+              ((comp m/return first)))
       config)))
 
 (defn- get-rel-name
