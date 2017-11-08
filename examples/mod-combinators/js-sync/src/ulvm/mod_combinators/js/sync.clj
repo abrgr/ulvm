@@ -16,7 +16,9 @@
      :body    (pr-str
                 (assoc-in
                   params
-                  [:attrs :ulvm.core/result-in-invocation-block]
+                  [:config
+                   :attrs
+                   :ulvm.core/result-in-invocation-block]
                   true))})
   
   (c/POST "/block" {:keys [params]}

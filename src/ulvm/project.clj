@@ -92,7 +92,8 @@
         :args (s/cat :combinator  #(satisfies? ModCombinator %)
                      :prj         ::project
                      :config      map?
-                     :invocations (s/+ ::enhanced-invocation)
+                     :invocations (s/spec
+                                    (s/+ ::enhanced-invocation))
                      :body        coll?)
         :ret e/either?)
 

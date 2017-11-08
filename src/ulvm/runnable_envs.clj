@@ -128,7 +128,7 @@
   (futil/mlet e/context
               [runner          (get-in re-rep [::ucore/exported-flows flow-name ::ucore/runner])
                ctx             (k/run-scope-keypath)
-               resolved-runner (uprj/eval-in-ctx prj ctx {'*params* params} runner)
+               resolved-runner (uprj/eval-in-ctx prj ctx {'*params* (list 'quote params)} runner)
                run-result      @(uprj/run prj ctx resolved-runner)]
     (e/right run-result)))
 

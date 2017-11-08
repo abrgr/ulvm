@@ -303,29 +303,41 @@
   (let [{:keys [provides
                 invs
                 depends-on
-                body]}      block
-        body-ast            (gen-ast prj graph-cfg mod-combinators flow-args body)
-        mc-name             (->> invs
-                                 first  ; the first [name, inv]
-                                 second ; the inv
-                                 :mod
-                                 ::ucore/mod-combinator-name)
-        mc                  (get mod-combinators mc-name)
-        mc-cfg              (get-in graph-cfg [:mod-combinator-cfgs mc-name])]
+                body]}     block
+        body-ast           (gen-ast prj graph-cfg mod-combinators flow-args body)
+        mc-name            (->> invs
+                                first  ; the first [name, inv]
+                                second ; the inv
+                                :mod
+                                ::ucore/mod-combinator-name)
+        mc                 (get mod-combinators mc-name)
+        mc-cfg             (get-in graph-cfg [:mod-combinator-cfgs mc-name])]
     (if (cset/subset? provides flow-args)
       ; we have no invocation for the flow-args
       body-ast
-      (uprj/block-with-results
-        mc
-        prj
-        mc-cfg
-        (vals invs)
-        body-ast))))
+      (m/bind body-ast
+        #(uprj/block-with-results
+          mc
+          prj
+          mc-cfg
+          (vals invs)
+          %)))))
 
 (defn- gen-ast
   "Generate an AST given a block graph"
   [prj graph-cfg mod-combinators flow-args blocks]
-  (map (partial gen-block-ast prj graph-cfg mod-combinators flow-args) blocks))
+  (reduce
+    (fn [acc-either block]
+      (m/mlet [acc       acc-either
+               block-ast (gen-block-ast
+                           prj
+                           graph-cfg
+                           mod-combinators
+                           flow-args
+                           block)]
+        (e/right (conj acc block-ast))))
+    (e/right [])
+    blocks))
 
 (defn- build-flow-in-scope
   "Builds the portion of a flow contained in a scope"
