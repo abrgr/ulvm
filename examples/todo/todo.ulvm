@@ -84,11 +84,17 @@
     :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs.ulvm"}}
    :ulvm.core/parent-scope :todo-svc-container
    :ulvm.core/modules {:auth-validator    {:ulvm.core/mod-combinator-name :js-sync
-                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/validators/auth"}}
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/validators/auth"}
+                                           :ulvm.core/config {
+                                             :ulvm.arg-mappings/positional [[:req]]}}
                        :todo-validator    {:ulvm.core/mod-combinator-name :js-sync
-                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/validators/todo"}}
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/validators/todo"}
+                                           :ulvm.core/config {
+                                             :ulvm.arg-mappings/positional [[:todo]]}}
                        :authorize-login   {:ulvm.core/mod-combinator-name :js-sync
-                                           :ulvm.core/mod-descriptor {:local-filesystem "todo-svc/validators/login"}}
+                                           :ulvm.core/mod-descriptor {:local-filesystem "todo-svc/validators/login"}
+                                           :ulvm.core/config {
+                                             :ulvm.arg-mappings/positional [[:username :password]]}}
                        :route             {:ulvm.core/mod-combinator-name :js-route-handler
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/route"}}
                        :mount-middleware  {:ulvm.core/mod-combinator-name :js-sync
@@ -102,9 +108,13 @@
                        :env               {:ulvm.core/mod-combinator-name :js-sync
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/env"}}
                        :store-session     {:ulvm.core/mod-combinator-name :js-promise
-                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/store-session"}}
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/store-session"}
+                                           :ulvm.core/config {
+                                             :ulvm.arg-mappings/positional [[:username :token :data]]}}
                        :make-session-response {:ulvm.core/mod-combinator-name :js-promise
-                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/make-session-response"}}
+                                           :ulvm.core/mod-descriptor {:local-filename "todo-svc/make-session-response"}
+                                           :ulvm.core/config {
+                                             :ulvm.arg-mappings/positional [[:token]]}}
                        :create-token      {:ulvm.core/mod-combinator-name :js-sync
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/create-token"}}}
    :init [(express          {} :as app)

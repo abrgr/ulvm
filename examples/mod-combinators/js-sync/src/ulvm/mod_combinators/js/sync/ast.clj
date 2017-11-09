@@ -35,8 +35,7 @@
 (defn- gen-inv-ast
   [{:keys [result-names arg-names mod mod-name inv]}]
   (let [result-name (get result-names :*default*)
-        args        (get-in inv [:inv :args])
-        arg-names   (get inv :arg-names)]
+        args        (get inv :args)]
     `(:assign
        ~result-name
        (:invoke

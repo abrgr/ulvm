@@ -315,7 +315,8 @@
     (if (cset/subset? provides flow-args)
       ; we have no invocation for the flow-args
       body-ast
-      (m/bind body-ast
+      (m/bind
+        body-ast
         #(uprj/block-with-results
           mc
           prj
@@ -335,7 +336,7 @@
                            mod-combinators
                            flow-args
                            block)]
-        (e/right (conj acc block-ast))))
+        (e/right (concat acc block-ast))))
     (e/right [])
     blocks))
 
@@ -373,7 +374,7 @@
               inverse-deps
               graph-cfg
               named-invs)
-            (#(e/right (gen-ast proj graph-cfg mod-combinators flow-args-set %))))))
+            (#(gen-ast proj graph-cfg mod-combinators flow-args-set %)))))
 
 (s/fdef build-flow-in-scope
         :args (s/cat :prj        ::uprj/project
