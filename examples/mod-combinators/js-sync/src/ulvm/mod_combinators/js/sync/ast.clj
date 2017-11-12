@@ -22,9 +22,12 @@
          (map
            (fn [[name arg]]
              {:pos (get arg-pos name)
-              :val (if (contains? arg :data)
+                       ; arg looks like
+                       ; [:data {}] or
+                       ; [:ref [:named-ref-arg {:sub-result :username, :result authorized-login}]
+              :val (if (= (first arg) :data)
                        ; if we have data, we assume it's a valid ast
-                       (get arg :data)
+                       (second arg)
                        ; if we're using a reference, we look up the name
                        (get arg-names name))}))
          ; sort by :pos
