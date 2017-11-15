@@ -3,20 +3,20 @@
    {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
     :ulvm.core/runnable-env-descriptor {:path "re-loaders/http.ulvm"}}})
 
-(ulvm.core/defmodcombinator :mvn
-  "Description of mvn combinator"
+(ulvm.core/defmodcombinator :sync
+  "Description of sync combinator"
   {:ulvm.core/runnable-env-ref
    {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
-    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/mvn.ulvm"}}})
+    :ulvm.core/runnable-env-descriptor {:path "mod-combinators/sync.ulvm"}}})
 
 (ulvm.core/defscope :my-scope
   "description of scope"
   {:ulvm.core/runnable-env-ref
    {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
     :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs.ulvm"}}
-   :ulvm.core/modules {:adder {:ulvm.core/mod-combinator-name :mvn
+   :ulvm.core/modules {:adder {:ulvm.core/mod-combinator-name :sync
                                :ulvm.core/mod-descriptor {:name "my-adder"}}
-                       :db-saver {:ulvm.core/mod-combinator-name :mvn
+                       :db-saver {:ulvm.core/mod-combinator-name :sync
                                   :ulvm.core/mod-descriptor {:name "my-db-saver"}}}
    :ulvm.core/init ((adder {:v1 42} :as my-adder))})
 

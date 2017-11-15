@@ -240,18 +240,42 @@
                      :name keyword?)
         :ret (s/keys :req-un [::prj ::el]))
 
+(defn- first-not-identical
+  [sentinel not-found l]
+  (if (empty? l)
+    not-found
+    (if (identical? sentinel (first l))
+       (recur sentinel not-found (rest l))
+       (first l))))
+
 (defn get-ctx-env
-  "Get an environment value, raising the sub-keys
-   of a given path (context) to the top level"
-  ([prj ctx key-path]
-   (get-ctx-env prj ctx key-path nil))
-  ([prj ctx key-path not-found]
-   (or (get-env prj (into ctx key-path) not-found)
-       (get-env prj key-path not-found))))
+  "Get an environment value, by checking every key in
+   the prj environment in the ordered collection of keys:
+   (first ctxs) + key-path, ..., (last ctxs) + key-path,
+   key-path"
+  ([prj ctxs key-path]
+   (get-ctx-env prj ctxs key-path nil))
+  ([prj ctxs key-path not-found]
+   (let [sentinel (Object.)]
+          ; our contexts (ending in a root context)
+     (->> (concat ctxs [[]])
+          ; our full key-paths (including context)
+          (map #(concat % key-path))
+          ; our env values (eithers) for each full key-path
+          (map #(get-env prj % sentinel))
+          ; an either of a list of values (instead of list of eithers)
+          (reduce
+            (fn [acc item]
+              (m/mlet [a acc
+                       i item]
+                (e/right (conj a i))))
+            (e/right []))
+          ; either the first non-sentinel or not-found
+          (m/fmap (partial first-not-identical sentinel not-found))))))
 
 (s/fdef get-ctx-env
         :args (s/cat :prj ::project
-                     :ctx sequential?
+                     :ctx (s/coll-of sequential?)
                      :key-path sequential?
                      :not-found (s/? su/any))
         :ret (su/either-of? su/any su/any))
@@ -337,8 +361,8 @@
         :ret (su/either-of? su/any su/any))
 
 (defn- resolve-env-ref
-  [prj ctx node]
-  (let [val (get-ctx-env prj ctx (rest node))]
+  [prj ctxs node]
+  (let [val (get-ctx-env prj ctxs (rest node))]
     (if (e/right? val)
       (m/extract val)
       val)))
@@ -348,19 +372,19 @@
    (ulvm.core/from-env [:my-env-key]),
    returns a form with all from-env invocations
    replaced with their values"
-  [prj ctx f]
+  [prj ctxs f]
   (replace-in-tree
     prj
     f
     #(if (invocation-of % 'ulvm.core/from-env)
-      (let [val (resolve-env-ref prj ctx %)]
+      (let [val (resolve-env-ref prj ctxs %)]
         (if (e/left? val)
           {:return val}
           {:replace-with val})))))
 
 (s/fdef resolve-env-refs
         :args (s/cat :prj  ::project
-                     :ctx  sequential?
+                     :ctx  (s/coll-of sequential?)
                      :form su/any)
         :ret (su/either-of? su/any su/any))
 
@@ -384,14 +408,14 @@
 (defn eval-in-ctx
   "Resolves environment references and evaluates
    configuration in the provided context"
-  ([prj ctx bindings cfg]
+  ([prj ctxs bindings cfg]
     (futil/mlet e/context
                 [bound    (apply-bindings prj bindings cfg)
-                 de-refed (resolve-env-refs prj ctx bound)
+                 de-refed (resolve-env-refs prj ctxs bound)
                  evaled   (selective-eval prj de-refed)]
                 (e/right evaled)))
-  ([prj ctx cfg]
-    (eval-in-ctx prj ctx {} cfg)))
+  ([prj ctxs cfg]
+    (eval-in-ctx prj ctxs {} cfg)))
 
 (defn- get-rel-name
   "Runnable env loader name from runnable env ref"

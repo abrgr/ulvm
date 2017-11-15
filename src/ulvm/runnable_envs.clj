@@ -86,7 +86,7 @@
   [prj keypath artifact-loader runner]
   (uprj/set-env prj keypath
                 (futil/mlet e/context
-                            [resolved-runner (uprj/eval-in-ctx prj (k/artifact-env-keypath artifact-loader) runner)
+                            [resolved-runner (uprj/eval-in-ctx prj [(k/artifact-env-keypath artifact-loader)] runner)
                              run-result      (uprj/run prj artifact-loader resolved-runner)]
                             (e/right run-result))))
 
@@ -127,7 +127,7 @@
   [prj re-rep flow-name params]
   (futil/mlet e/context
               [runner          (get-in re-rep [::ucore/exported-flows flow-name ::ucore/runner])
-               ctx             (k/run-scope-keypath)
+               ctx             [(k/run-scope-keypath)]
                resolved-runner (uprj/eval-in-ctx prj ctx {'*params* (list 'quote params)} runner)
                run-result      @(uprj/run prj ctx resolved-runner)]
     (e/right run-result)))

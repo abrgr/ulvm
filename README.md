@@ -85,3 +85,35 @@ Scope stagers are responsible for staging a compiled artifact.  For example, the
 ### Scope instance creators
 
 Scope instance creators create instances of scopes (e.g. launch a process, create a cloudformation environment, run a docker container).
+
+# Writing ulvm systems
+
+## Environment
+
+The environment is a write-once value hierarchy that is built up as part of building a ulvm environment.  All elements of the ulvm compiler take their configuration from the environment and users may supply values to configure the compilation.
+
+### Well-known keys and values
+
+#### Environment keys
+ - `:ulvm.core/project-root` - root directory for the ulvm project.  Defaults to the directory passed to to `--dir` 
+ - `:ulvm.core/ulvm-root` - root directory for the ulvm source.  If relative, resolved relative to `:ulvm.core/project-root`.  Defaults to `"ulvm"`
+ - `:ulvm.core/gen-src-root` - root directory for the generated source.  If relative, resolved relative to `:ulvm.core/project-root`.  Defaults to `"src"`
+
+#### Module combinator attributes
+Stored in a map under the `:attr` key in a module combinator's config.
+ - `:ulvm.core/result-in-invocation-block` - If mapped to a truthy value, indicates that the result of any invocation for which this module combinator is responsible is available in the invocation block.  That is, no nested block is created.
+
+#### Scope configs
+ - `:ulvm.scopes/src-dir` - Added to a scope config to indicate the directory to write the scope's src to.
+ - `:ulvm.scopes/build-dir` - Added to a scope config to indicate the directory to write the compiled artifact to.
+ 
+# TODO
+[ ] Handle transformers.
+[ ] Remove the built-in de-nesting.  This should be handled by the module combinator.
+[ ] Module combinators must be passed multiple bodies, one for each possible disjoint set of results.
+[ ] How does chaining work?  (e.g. promise chains or clojure threading macros)
+[ ] How do we specify or determine the module-combinator of a flow?  That is, how do we return values from the flow?
+[ ] Do we support un-named sub-flows?  Right now, every invocation in a flow "returns" a value to the originating scope.  We should support some computation on scope A, which then hands off to some computation on scope B, without making another named flow.
+[ ] How do we avoid naming every result?
+[ ] Rationalize namespaces.
+[ ] Move all user-visible constants (e.g. `ulvm.core/project-root` to a constants file)

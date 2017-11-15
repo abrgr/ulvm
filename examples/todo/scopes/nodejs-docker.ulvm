@@ -5,7 +5,7 @@
    {:org.ulvm.nodejs-docker/nodejs-docker-scope
     {:ulvm.core/artifact-loader
      {:ulvm.core/builtin-artifact-loader-name :ulvm.artifact-loaders/docker-hub
-      :ulvm.core/artifact-descriptor {:image "nodejs-docker-scope:1.0.0"}}
+      :ulvm.core/artifact-descriptor {:image "ulvm-nodejs-scope:1.0.0"}}
      :ulvm.core/runner
      {:ulvm.core/builtin-runner-name :ulvm.runners/docker-container
       :ulvm.core/runner-descriptor
@@ -15,7 +15,7 @@
     {:ulvm.core/runner
      {:ulvm.core/builtin-runner-name :ulvm.runners/http
       :ulvm.core/runner-descriptor {:method :post
-                                    :url (ulvm.core/eval (str "http://" (ulvm.core/from-env :org.ulvm.nodejs-docker/nodejs-docker-scope :container-ip) ":8888/write-dependencies"))
+                                    :url (ulvm.core/eval (str "http://" (ulvm.core/from-env :org.ulvm.nodejs-docker/nodejs-docker-scope :container-ip) ":8080/write-deps"))
                                     :body (ulvm.core/eval (str *params*))
                                     :headers {"content-type" "application/edn"}
                                     :acceptable-statuses #{200}}}

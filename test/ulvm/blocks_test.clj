@@ -66,10 +66,11 @@
             :test-scope
             (reify scopes/Scope
               (-stop [_ _] (e/right nil))
-              (-write-dependencies [_ _ _] (e/right nil))
+              (-write-dependencies [_ _ _ _] (e/right nil))
               (-get-config [_ _ _] (e/right nil))
-              (-get-module-config [_ _ _ _] (e/right nil))
-              (-get-implicit-modules [_ _ _] (e/right nil)))
+              (-get-module-config [_ _ _ _ _] (e/right nil))
+              (-get-implicit-modules [_ _ _] (e/right nil))
+              (-resolve-name [scope prj config name-parts] (e/right nil)))
             :test-flow
             deps
             (utils/flip-map deps)
@@ -131,10 +132,11 @@
             :test-scope
             (reify scopes/Scope
               (-stop [_ _] (e/right nil))
-              (-write-dependencies [_ _ _] (e/right nil))
+              (-write-dependencies [_ _ _ _] (e/right nil))
               (-get-config [_ _ _] (e/right nil))
-              (-get-module-config [_ _ _ _] (e/right nil))
-              (-get-implicit-modules [_ _ _] (e/right nil)))
+              (-get-module-config [_ _ _ _ _] (e/right nil))
+              (-get-implicit-modules [_ _ _] (e/right nil))
+              (-resolve-name [scope prj config name-parts] (e/right nil)))
             :test-flow
             deps
             (utils/flip-map deps)

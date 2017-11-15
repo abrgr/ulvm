@@ -11,11 +11,11 @@
   (:use     [clojure.test :only [is deftest]]))
 
 (def flowfile-example
-  `[(ulvm/defmodcombinator :mvn
-      "Description of mvn combinator"
+  `[(ulvm/defmodcombinator :sync
+      "Description of sync combinator"
       {:ulvm.core/runnable-env-ref
-       {:ulvm.core/runnable-env-loader-name :http
-        :ulvm.core/runnable-env-descriptor {:url "http://ulvm.org/loaders/mvn.ulvm"}}})
+       {:ulvm.core/runnable-env-loader-name :ulvm.re-loaders/project-file
+        :ulvm.core/runnable-env-descriptor {:path "mod-combinators/sync.ulvm"}}})
 
     (ulvm/defrunnableenvloader :http
       {:ulvm.core/runnable-env-ref
@@ -27,9 +27,9 @@
       {:ulvm.core/runnable-env-ref
        {:ulvm.core/builtin-runnable-env-loader-name :ulvm.core/project-file
         :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs.ulvm"}}
-       :ulvm.core/modules {:adder {:ulvm.core/mod-combinator-name :mvn
+       :ulvm.core/modules {:adder {:ulvm.core/mod-combinator-name :sync
                                    :ulvm.core/mod-descriptor {:name "my-adder"}}
-                           :db-saver {:ulvm.core/mod-combinator-name :mvn
+                           :db-saver {:ulvm.core/mod-combinator-name :sync
                                       :ulvm.core/mod-descriptor {:name "my-db-saver"}}}
        :ulvm.core/init ((adder {:v1 42} :as my-adder))})
 
@@ -75,12 +75,12 @@
              :renv-loaders    {}
              :renvs           {}
              :env             {::ulvm/project-root "examples/toy"}}
-        {p :prj} (uprj/get prj :mod-combinators :mvn)]
+        {p :prj} (uprj/get prj :mod-combinators :sync)]
     (is (= 1 (count (:mod-combinators p))))
     (is (every? #(e/right? (second %)) (:mod-combinators p)))
-    (is (= 2 (count (:renv-loaders p))))
+    (is (= 1 (count (:renv-loaders p))))
     (is (every? #(e/right? (second %)) (:renv-loaders p)))
-    (is (= 2 (count (:renvs p))))
+    (is (= 1 (count (:renvs p))))
     (is (every? #(e/right? (second %)) (:renvs p)))))
 
 (deftest resolve-env-refs-ok
@@ -92,7 +92,7 @@
              :env             {:my-val :wrong
                                :my {:ctx (e/right {:my-val :right})}}}
         to-resolve {:a '(ulvm.core/from-env :my-val)}
-        resolved (uprj/resolve-env-refs prj [:my :ctx] to-resolve)]
+        resolved (uprj/resolve-env-refs prj [[:my :ctx]] to-resolve)]
     (is (e/right? resolved))
     (is (= {:a :right} (m/extract resolved)))))
 
@@ -105,7 +105,7 @@
              :env             {:my-val :wrong
                                :my {:ctx (e/left 4)}}}
         to-resolve {:a '(ulvm.core/from-env :my-val)}
-        resolved (uprj/resolve-env-refs prj [:my :ctx] to-resolve)]
+        resolved (uprj/resolve-env-refs prj [[:my :ctx]] to-resolve)]
     (is (e/left? resolved))))
 
 (deftest selective-eval

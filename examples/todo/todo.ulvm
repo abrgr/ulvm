@@ -83,6 +83,12 @@
    {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
     :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs.ulvm"}}
    :ulvm.core/parent-scope :todo-svc-container
+   :ulvm.core/config {pkg-cfg {
+     :name        "todo-svc"
+     :version     "1.0.0"
+     :description "Todo service"
+     :author      "Adam Berger"
+     :license     "MIT"}}
    :ulvm.core/modules {:auth-validator    {:ulvm.core/mod-combinator-name :js-sync
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/validators/auth"}
                                            :ulvm.core/config {
@@ -100,9 +106,9 @@
                        :mount-middleware  {:ulvm.core/mod-combinator-name :js-sync
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/mount-middleware"}}
                        :express           {:ulvm.core/mod-combinator-name :js-sync
-                                           :ulvm.core/mod-descriptor {:npm "express"}}
+                                           :ulvm.core/mod-descriptor {:npm-module "express", :npm-version "4.16.2"}}
                        :json-body-parser  {:ulvm.core/mod-combinator-name :js-sync
-                                           :ulvm.core/mod-descriptor {:npm "body-parser", :prop "json"}}
+                                           :ulvm.core/mod-descriptor {:npm-module "body-parser", :npm-version "1.18.2", :prop "json"}}
                        :listen            {:ulvm.core/mod-combinator-name :js-sync
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/glue/listen"}}
                        :env               {:ulvm.core/mod-combinator-name :js-sync

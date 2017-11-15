@@ -166,6 +166,7 @@
                 (scopes/get-module-config
                   scope
                   prj
+                  cfg
                   (::ucore/mod-descriptor m)
                   (get m ::ucore/config {}))
                 (assoc m ::ucore/config))]))
@@ -483,5 +484,9 @@
                   (scopes/write-dependencies
                     scope
                     built-prj
-                    (scope-mod-descs mods))))
+                    ; TODO: figure out directory mounts and
+                    ;       re-mapping of filenames
+                    (merge scope-cfg
+                           {:ulvm.scopes/src-dir "src"})
+                    (scope-mod-descs (get mods scope-name)))))
     (futil/recover-with #(uprj/set-env prj (k/scope-deps-keypath scope-name) %))))

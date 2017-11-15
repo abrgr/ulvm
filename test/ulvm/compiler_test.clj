@@ -21,9 +21,9 @@
   (st/instrument (st/instrumentable-syms 'ulvm))
   (let [scope (reify scopes/Scope
                 (-stop [_ _] (e/right nil))
-                (-write-dependencies [_ _ _] (e/right nil))
+                (-write-dependencies [_ _ _ _] (e/right nil))
                 (-get-config [_ _ _] (e/right nil))
-                (-get-module-config [_ _ _ _] (e/right nil))
+                (-get-module-config [_ _ _ _ _] (e/right nil))
                 (-get-implicit-modules [_ _ _] (e/right nil))
                 (-resolve-name [_ _ _ name-parts] (e/right (clojure.string/join "_" name-parts))))
         mod {:ulvm.core/mod-combinator-name :nop,

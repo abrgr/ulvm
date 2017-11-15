@@ -11,21 +11,21 @@
 (defprotocol Scope
   (-stop [scope prj]
     "Stops a scope")
-  (-write-dependencies [scope prj mod-descriptors]
+  (-write-dependencies [scope prj cfg mod-descriptors]
     "Writes scope dependencies given the set of module
      descriptors.  This is the time to create a
      dependency manifest and, if dependencies must
      be interrogated at compile-time, this is the
      time to download them as well.")
-  (-get-config [scope prj config]
+  (-get-config [scope prj cfg]
     "Applies the provided configuration to any 
      default configuration and returns the
      configuration to use.")
-  (-get-module-config [scope prj mod-desc config]
+  (-get-module-config [scope prj cfg mod-desc mod-cfg]
     "Applies the provided configuration to any
      default configuration provided by the module
      and returns the configuration to use.")
-  (-get-implicit-modules [scope prj config]
+  (-get-implicit-modules [scope prj cfg]
     "Returns a map of names to modules that the scope
      implicitly provides.")
   (-resolve-name [scope prj config name-parts]
@@ -38,44 +38,46 @@
   (reify Scope
     (-stop [scope prj]
       (renv/stop prj renv))
-    (-write-dependencies [scope prj mod-descriptors]
+    (-write-dependencies [scope prj cfg mod-descriptors]
       (renv/invoke-ideal-flow
         prj
         renv
         :org.ulvm.scope/write-dependencies
-        {:mod-descriptors mod-descriptors}))
-    (-get-config [scope prj config]
+        {:mod-descriptors mod-descriptors
+         :cfg             cfg}))
+    (-get-config [scope prj cfg]
       (futil/with-fallback
         (renv/invoke-ideal-flow
           prj
           renv
           :org.ulvm.scope/get-config
-          {:config config})
-        config))
-    (-get-module-config [scope prj mod-desc config]
+          {:config cfg})
+        cfg))
+    (-get-module-config [scope prj cfg mod-desc mod-cfg]
       (futil/with-fallback
         (renv/invoke-ideal-flow
           prj
           renv
           :org.ulvm.scope/get-module-config
           {:module-descriptors mod-desc
-           :config             config})
-        config))
-    (-get-implicit-modules [scope prj config]
+           :cfg                cfg
+           :mod-cfg            mod-cfg})
+        mod-cfg))
+    (-get-implicit-modules [scope prj cfg]
       (futil/with-fallback
         (renv/invoke-ideal-flow
           prj
           renv
           :org.ulvm.scope/get-implicit-modules
-          {:config             config})
+          {:cfg cfg})
         {}))
-    (-resolve-name [scope prj config name-parts]
+    (-resolve-name [scope prj cfg name-parts]
       (futil/with-fallback
         (renv/invoke-ideal-flow
           prj
           renv
           :org.ulvm.scope/resolve-name
-          {:config     config
+          {:config     cfg
            :name-parts name-parts})
         (->> name-parts
              (map name)
@@ -88,20 +90,20 @@
   (-stop scope prj))
 
 (defn write-dependencies
-  [scope prj mod-descriptors]
-  (-write-dependencies scope prj mod-descriptors))
+  [scope prj cfg mod-descriptors]
+  (-write-dependencies scope prj cfg mod-descriptors))
 
 (defn get-config
-  [scope prj config]
-  (-get-config scope prj config))
+  [scope prj cfg]
+  (-get-config scope prj cfg))
 
 (defn get-module-config
-  [scope prj mod-desc config]
-  (-get-module-config scope prj mod-desc config))
+  [scope prj cfg mod-desc mod-cfg]
+  (-get-module-config scope prj cfg mod-desc mod-cfg))
 
 (defn get-implicit-modules
-  [scope prj config]
-  (-get-implicit-modules scope prj config))
+  [scope prj cfg]
+  (-get-implicit-modules scope prj cfg))
 
 (defn resolve-name
   [scope prj config name-parts]
