@@ -128,5 +128,6 @@
              :else             {:path-queue (conj path-queue path)}))
          {:path-queue [], :res nil})
        ((fn [{:keys [res path-queue]}]
-          (or res path-queue)))
-       (apply io/file)))
+          (or res (reverse path-queue))))
+       (apply io/file)
+       .getCanonicalPath))

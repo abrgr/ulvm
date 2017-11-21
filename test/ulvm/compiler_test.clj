@@ -14,7 +14,7 @@
 (t/deftest compiler-test
   (st/instrument (st/instrumentable-syms 'ulvm))
   (let [example-dir (.getCanonicalPath (io/file (io/as-file ".") "examples" "toy"))
-        prj (c/ulvm-compile example-dir)]
+        prj (c/ulvm-compile {} example-dir)]
     (println prj)))
 
 (t/deftest module-for-invocation

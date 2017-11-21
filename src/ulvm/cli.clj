@@ -2,12 +2,14 @@
   (:require [clojure.tools.cli :as cli]
             [clojure.string :as string]
             [clojure.spec.test :as st]
+            [clojure.edn :as edn]
             [ulvm.compiler :as cmpl]))
 
 (def cli-opts
  [["-d" "--dir DIR" "Directory"
    :default "."]
   ["-i" "--instrument" "Instrument"]
+  ["-e" "--env" "Initial environment"]
   ["-h" "--help"]])
 
 (defn- usage
@@ -28,8 +30,9 @@
   (when
     (:instrument opts) 
     (st/instrument (st/instrumentable-syms 'ulvm)))
-  (let [dir  (:dir opts)
-        prj  (cmpl/ulvm-compile dir)]
+  (let [dir          (:dir opts)
+        cmd-line-env (edn/read-string (:env opts))
+        prj          (cmpl/ulvm-compile cmd-line-env dir)]
     (println prj)))
 
 (defn- exit

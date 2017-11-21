@@ -13,6 +13,7 @@
             [ulvm.env-keypaths :as k]
             [ulvm.scopes :as scopes]
             [ulvm.blocks :as b]
+            [ulvm.env :as env]
             [clojure.set :as cset]
             [cats.core :as m]
             [cats.monad.either :as e]))
@@ -27,9 +28,9 @@
 
 (defn ulvm-compile
   "Compile a ulvm system"
-  [directory]
-  (let [ulvm-entities   (uread/read-ulvm-dir directory)
-        env             (assoc-in {} (k/project-root) directory) ; TODO: get a real environment
+  [cmd-line-env project-dir]
+  (let [ulvm-entities   (uread/read-ulvm-dir project-dir)
+        env             (env/resolve-initial-env cmd-line-env project-dir)
         empty-project   (uprj/init ulvm-entities env)
         prj-with-scopes (build-scopes empty-project)]
     prj-with-scopes)) ; TODO

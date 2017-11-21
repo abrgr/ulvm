@@ -46,6 +46,15 @@
         entity-type (:ulvm.core/type (meta (first (vals entity-by-name))))]
     {entity-type entity-by-name}))
 
+(defn with-file-stream
+  "Invoke f with a file stream created from path-parts"
+  [path-parts f]
+  (let [file (apply io/file path-parts)]
+    (when (.exists file)
+      (some->> io/reader
+               java.io.PushbackReader.
+               f))))
+       
 (defn edn-seq
   "Reads all forms in an edn stream, returning a lazy seq"
   ([stream]
