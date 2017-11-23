@@ -1,5 +1,6 @@
 (ns ^{:author "Adam Berger"} ulvm.utils
   "ULVM utilities"
+  (:require [clojure.java.io :as io])
   (:refer-clojure :rename {get-in core-get-in}))
 
 (defmacro retrying
@@ -107,3 +108,25 @@
          (fn [k]
            [k (val-fn k)]))
        (into {})))
+
+(defn resolve-path
+  "Starting with the last absolute path, append the rest of the
+   paths as relative paths.
+   
+   For example, (resolve-path \"/a\" \"b\" \"/c\" \"d\") yields
+   a java.io.File with path \"/c/d\"."
+  [& paths]
+  (->> (reverse paths)
+       (map name)
+       (reduce
+         (fn [{:keys [res path-queue]} path]
+           (cond
+             (some? res)       {:res res}
+             (->> path
+                  io/file
+                  .isAbsolute) {:res (concat [path] (reverse path-queue))}
+             :else             {:path-queue (conj path-queue path)}))
+         {:path-queue [], :res nil})
+       ((fn [{:keys [res path-queue]}]
+          (or res path-queue)))
+       (apply io/file)))

@@ -29,7 +29,7 @@
   "Compile a ulvm system"
   [directory]
   (let [ulvm-entities   (uread/read-ulvm-dir directory)
-        env             {::ucore/project-root directory} ; TODO: get a real environment
+        env             (assoc-in {} (k/project-root) directory) ; TODO: get a real environment
         empty-project   (uprj/init ulvm-entities env)
         prj-with-scopes (build-scopes empty-project)]
     prj-with-scopes)) ; TODO
@@ -449,7 +449,7 @@
   [proj scope-name scope-ent]
   (->
     (futil/mlet e/context
-                [res   (scopes/make-scope proj scope-ent)
+                [res   (scopes/make-scope proj scope-name scope-ent)
                  scope (:scope res)
                  prj   (:prj res)
                  cfg   (scopes/get-config scope prj (get scope-ent ::ucore/config {}))

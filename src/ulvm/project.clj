@@ -5,6 +5,7 @@
             [ulvm.core :as ucore]
             [ulvm.spec-utils :as su]
             [ulvm.func-utils :as futil]
+            [ulvm.env-keypaths :as k]
             [cats.monad.either :as e]
             [cats.core :as m])
   (:refer-clojure :rename {get core-get
@@ -463,6 +464,14 @@
   [flow-ent]
   (with-meta (s/conform ::ucore/flow flow-ent) (meta flow-ent)))
 
+(defn- default-env
+  [env]
+  (merge
+    (-> {}
+        (assoc-in (k/gen-src-root '*root*) "src")
+        (assoc-in (k/build-root '*root*) "build"))
+    env))
+
 (defn init
   "Initial project"
   [entities env]
@@ -470,4 +479,4 @@
    :mod-combinators {}
    :renv-loaders    {}
    :renvs           {}
-   :env             env})
+   :env             (default-env env)})

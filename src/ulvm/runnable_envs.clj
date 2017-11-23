@@ -15,12 +15,12 @@
          invoke-ideal-flow)
 
 (defn- set-loaded-artifact
-  [prj artifact-loader artifact-info]
-  (uprj/set-env prj (k/artifact-env-keypath artifact-loader) artifact-info))
+  [prj artifact-loader extra-ctxs artifact-info]
+  (uprj/set-env prj (k/artifact-env-keypath artifact-loader extra-ctxs) artifact-info))
 
 (defn- get-loaded-artifact
-  [prj artifact-loader]
-  (uprj/get-env prj (k/artifact-env-keypath artifact-loader)))
+  [prj extra-ctxs artifact-loader]
+  (uprj/get-env prj (k/artifact-env-keypath artifact-loader extra-ctxs)))
 
 (defmulti builtin-load-artifact
   "Retrieve an artifact with a builtin loader"
@@ -52,64 +52,73 @@
         :ret ::uprj/project)
 
 (defn- get-artifact
-  [prj artifact-loader]
+  [prj extra-ctxs artifact-loader]
   (let [desc (::ucore/artifact-descriptor artifact-loader)]
     (if (contains? artifact-loader ::ucore/builtin-artifact-loader-name)
       (let [name (::ucore/builtin-artifact-loader-name artifact-loader)]
-        (set-loaded-artifact prj artifact-loader
+        (set-loaded-artifact prj artifact-loader extra-ctxs
                              (builtin-load-artifact prj name desc)))
       (let [{renv-prj :prj, renv :el} (uprj/deref-runnable-env prj artifact-loader)
             desc (::ucore/artifact-descriptor artifact-loader)]
-        (set-loaded-artifact renv-prj artifact-loader
+        (set-loaded-artifact renv-prj artifact-loader extra-ctxs
                              (custom-load-artifact renv-prj renv desc))))))
 
 (s/fdef get-artifact
-        :args (s/cat :prj ::uprj/project
+        :args (s/cat :prj             ::uprj/project
+                     :extra-ctxs      (s/coll-of sequential?)
                      :artifact-loader ::ucore/artifact-loader)
         :ret ::uprj/project)
 
 (defn- get-artifact-if-needed
-  [prj artifact-loader]
-  (e/branch (get-loaded-artifact prj artifact-loader)
+  [prj extra-ctxs artifact-loader]
+  (e/branch (get-loaded-artifact prj extra-ctxs artifact-loader)
             (fn [_] prj)
             (fn [artifact]
               (if (some? artifact)
                 prj
-                (get-artifact prj artifact-loader)))))
+                (get-artifact prj extra-ctxs artifact-loader)))))
 
 (s/fdef get-artifact-if-needed
         :args (s/cat :prj ::uprj/project
+                     :extra-ctxs      (s/coll-of sequential?)
                      :artifact-loader ::ucore/artifact-loader)
         :ret ::uprj/project)
 
 (defn- run-artifact
-  [prj keypath artifact-loader runner]
+  [prj extra-ctxs keypath artifact-loader runner]
   (uprj/set-env prj keypath
                 (futil/mlet e/context
-                            [resolved-runner (uprj/eval-in-ctx prj [(k/artifact-env-keypath artifact-loader)] runner)
+                            [ldr-keypath    (k/artifact-env-keypath artifact-loader extra-ctxs)
+                            resolved-runner (uprj/eval-in-ctx
+                                               prj
+                                               (concat [ldr-keypath] extra-ctxs)
+                                               runner)
                              run-result      (uprj/run prj artifact-loader resolved-runner)]
                             (e/right run-result))))
 
 (defn- run-scope
-  [prj scope-name runnable-scope]
+  [prj extra-ctxs scope-name runnable-scope]
   (let [artifact-loader (::ucore/artifact-loader runnable-scope)
         runner          (::ucore/runner runnable-scope)
-        artifact-prj    (get-artifact-if-needed prj artifact-loader)]
-    (run-artifact artifact-prj (k/run-scope-keypath scope-name) artifact-loader runner)))
+        artifact-prj    (get-artifact-if-needed prj extra-ctxs artifact-loader)]
+    (run-artifact artifact-prj extra-ctxs (k/run-scope-keypath scope-name) artifact-loader runner)))
 
 (defn launch
   "Launches a runnable environment, returning an updated project"
-  [prj re-rep]
-  (let [scopes (::ucore/runnable-scopes re-rep)]
-    (reduce
-     (fn [p [scope-name scope]]
-       (run-scope p scope-name scope))
-     prj
-     scopes)))
+  ([prj re-rep]
+    (launch prj re-rep []))
+  ([prj re-rep extra-ctxs]
+    (let [scopes (::ucore/runnable-scopes re-rep)]
+      (reduce
+       (fn [p [scope-name scope]]
+         (run-scope p extra-ctxs scope-name scope))
+       prj
+       scopes))))
 
 (s/fdef launch
-        :args (s/cat :prj ::uprj/project
-                     :re-rep ::ucore/runnable-env)
+        :args (s/cat :prj        ::uprj/project
+                     :re-rep     ::ucore/runnable-env
+                     :extra-ctxs (s/? (s/coll-of sequential?)))
         :ret ::uprj/project)
 
 (defn stop

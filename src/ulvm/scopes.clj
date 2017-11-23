@@ -4,6 +4,7 @@
             [ulvm.project :as uprj]
             [ulvm.runnable-envs :as renv]
             [ulvm.func-utils :as futil]
+            [ulvm.utils :as u]
             [ulvm.env-keypaths :as k]
             [cats.core :as m]
             [cats.monad.either :as e]))
@@ -109,16 +110,36 @@
   [scope prj config name-parts]
   (-resolve-name scope prj config name-parts))
 
+(defn with-scope-paths
+  "Merge the paths for the well-known directories into the scope
+   config if they are not already provided."
+  [prj scope-name cfg]
+  (futil/mlet e/context
+              [prj-root    (uprj/get-env prj (k/project-root))
+               src-root    (uprj/get-env prj (k/gen-src-root scope-name) "src")
+               build-root  (uprj/get-env prj (k/build-root scope-name) "build")
+               scope-src   (get cfg ::gen-src-dir scope-name)
+               scope-build (get cfg ::build-dir scope-name)]
+    (merge
+      cfg
+      {::gen-src-dir (u/resolve-path prj-root src-root scope-src)
+       ::build-dir   (u/resolve-path prj-root build-root scope-build)})))
+
 (defn make-scope
   "Make a scope instance"
-  [prj scope-ent]
-  (let [{renv-prj :prj, renv-either :el} (uprj/deref-runnable-env prj scope-ent)]
+  [proj scope-name scope-ent]
+  (let [cfg               (->> (get scope-ent ::ucore/config)
+                               (with-scope-paths proj scope-name))
+        k                 (k/scope-config-keypath scope-name)
+        prj               (uprj/set-env proj k cfg)
+        {p           :prj
+         renv-either :el} (uprj/deref-runnable-env prj scope-ent)]
     (m/extract
       (m/bimap
         (fn [err]
-          {:prj   renv-prj
+          {:prj   p
            :scope (e/left err)})
         (fn [renv]
-          {:prj   (renv/launch renv-prj renv)
+          {:prj   (renv/launch p renv [k])
            :scope (e/right (scope-with-renv renv))})
         renv-either))))

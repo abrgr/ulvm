@@ -96,15 +96,15 @@ The environment is a write-once value hierarchy that is built up as part of buil
 
 #### Environment keys
  - `:ulvm.core/project-root` - root directory for the ulvm project.  Defaults to the directory passed to to `--dir` 
- - `:ulvm.core/ulvm-root` - root directory for the ulvm source.  If relative, resolved relative to `:ulvm.core/project-root`.  Defaults to `"ulvm"`
  - `:ulvm.core/gen-src-root` - root directory for the generated source.  If relative, resolved relative to `:ulvm.core/project-root`.  Defaults to `"src"`
+ - `:ulvm.core/build-root` - root directory for the built artifacts.  If relative, resolved relative to `:ulvm.core/project-root`.  Defaults to `"build"`
 
 #### Module combinator attributes
 Stored in a map under the `:attr` key in a module combinator's config.
  - `:ulvm.core/result-in-invocation-block` - If mapped to a truthy value, indicates that the result of any invocation for which this module combinator is responsible is available in the invocation block.  That is, no nested block is created.
 
 #### Scope configs
- - `:ulvm.scopes/src-dir` - Added to a scope config to indicate the directory to write the scope's src to.
+ - `:ulvm.scopes/gen-src-dir` - Added to a scope config to indicate the directory to write the scope's src to.
  - `:ulvm.scopes/build-dir` - Added to a scope config to indicate the directory to write the compiled artifact to.
  
 # TODO
