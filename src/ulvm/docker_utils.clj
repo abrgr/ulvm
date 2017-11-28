@@ -8,7 +8,8 @@
              DockerClient$LogsParam
              LogMessage$Stream]
             [com.spotify.docker.client.messages RegistryAuth
-             ContainerConfig]))
+             ContainerConfig
+             HostConfig]))
 
 (defn- make-registry-auth
   [registry-auth]
@@ -80,6 +81,14 @@
                `((some? ~val) ~f)))
            forms)))
 
+(defn- add-host-cfg
+  [builder host-cfg]
+  (.hostConfig
+    builder
+    (-> (HostConfig/builder)
+        (.extraHosts (map (fn [[host ip]] (str host ":" ip)) (:extra-hosts host-cfg)))
+        (.build))))
+
 (defn- create-container-cfg
   [desc]
   (.build
@@ -92,7 +101,8 @@
         (.labels          (:labels desc))
         (.workingDir      (:working-dir desc))
         (.networkDisabled (:network-disabled desc))
-        (add-volumes      (:volumes desc)))))
+        (add-volumes      (:volumes desc))
+        (add-host-cfg     (:host-cfg desc)))))
 
 (defn- container-ip
   [client container-id]

@@ -1,6 +1,7 @@
 (ns ^{:author "Adam Berger"} ulvm.utils
   "ULVM utilities"
   (:require [clojure.java.io :as io])
+  (:import  [java.net NetworkInterface])
   (:refer-clojure :rename {get-in core-get-in}))
 
 (defmacro retrying
@@ -131,3 +132,21 @@
           (or res (reverse path-queue))))
        (apply io/file)
        .getCanonicalPath))
+
+(defn get-ip
+  "Get our IP Address"
+  []
+  (->> (NetworkInterface/getNetworkInterfaces)
+       enumeration-seq
+       ; all non-loopback addresses
+       (filter #(not (.isLoopback %)))
+       ; get addresses
+       (map #(.getInterfaceAddresses %))
+       ; first interface
+       first
+       ; first address
+       first
+       ; get the address out of the interface address
+       (#(.getAddress %))
+       ; get the string representation
+       (#(.getHostAddress %))))

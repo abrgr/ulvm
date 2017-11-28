@@ -9,7 +9,10 @@
      :ulvm.core/runner
      {:ulvm.core/builtin-runner-name :ulvm.runners/docker-container
       :ulvm.core/runner-descriptor
-      {:image (ulvm.core/from-env :image)}}}}
+      {:image (ulvm.core/from-env :image)
+       :host-cfg
+        {:extra-hosts
+         {(ulvm.core/eval (-> (ulvm.core/from-env :ulvm.core/fileserver-base-uri) (java.net.URI.) (.getHost))) (ulvm.core/from-env :ulvm.core/fileserver-ip)}}}}}}
    :ulvm.core/exported-flows
    {:org.ulvm.node/write-dependencies
     {:ulvm.core/runner

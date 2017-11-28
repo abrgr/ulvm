@@ -14,6 +14,7 @@
             [ulvm.scopes :as scopes]
             [ulvm.blocks :as b]
             [ulvm.env :as env]
+            [ulvm.fileserver :as fs]
             [clojure.set :as cset]
             [cats.core :as m]
             [cats.monad.either :as e]))
@@ -69,18 +70,19 @@
                 scope-cfgs
                 mod-combinators
                 mod-combinator-cfgs]} (make-scopes proj)]
-    (reduce
-     (fn [prj [scope-name scope-ent]]
-       (build-scope
-         prj
-         mod-combinators
-         mod-combinator-cfgs
-         mods
-         scope-name
-         (get scope-cfgs scope-name)
-         (get scopes scope-name)))
-     prj
-     (get-in prj [:entities ::ucore/scopes]))))
+    (fs/with-fs prj
+      (reduce
+       (fn [prj [scope-name scope-ent]]
+         (build-scope
+           prj
+           mod-combinators
+           mod-combinator-cfgs
+           mods
+           scope-name
+           (get scope-cfgs scope-name)
+           (get scopes scope-name)))
+       prj
+       (get-in prj [:entities ::ucore/scopes])))))
 
 (defn- scope-mod-descs
   [mods-by-name]

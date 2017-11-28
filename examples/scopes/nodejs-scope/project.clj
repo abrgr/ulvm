@@ -9,7 +9,8 @@
                 [compojure "1.6.0"]
                 [fogus/ring-edn "0.3.0"]
                 [funcool/cats "2.1.0"]
-                [org.clojure/data.json "0.2.6"]]
+                [org.clojure/data.json "0.2.6"]
+                [amazonica "0.3.114"]]
  :main ^:skip-aot ulvm.scopes.nodejs
  :target-path "target/%s"
  :profiles {:uberjar {:aot :all}})

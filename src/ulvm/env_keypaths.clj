@@ -71,3 +71,15 @@
     [::ucore/build-root])
   ([scope-name]
     (conj (build-root) scope-name)))
+
+(defn fileserver-base-uri
+  "Base URI for the embedded file server that we run to allow scopes to write
+   to disk"
+  []
+  [::ucore/fileserver-base-uri])
+
+(defn fileserver-ip
+  "IP for the embedded file server that we run to allow scopes to write
+   to disk"
+  []
+  [::ucore/fileserver-ip])

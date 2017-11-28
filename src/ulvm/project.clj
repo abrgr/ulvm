@@ -464,14 +464,6 @@
   [flow-ent]
   (with-meta (s/conform ::ucore/flow flow-ent) (meta flow-ent)))
 
-(defn- default-env
-  [env]
-  (merge
-    (-> {}
-        (assoc-in (k/gen-src-root '*root*) "src")
-        (assoc-in (k/build-root '*root*) "build"))
-    env))
-
 (defn init
   "Initial project"
   [entities env]
@@ -479,4 +471,4 @@
    :mod-combinators {}
    :renv-loaders    {}
    :renvs           {}
-   :env             (default-env env)})
+   :env             env})
