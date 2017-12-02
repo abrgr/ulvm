@@ -85,9 +85,10 @@
   [builder host-cfg]
   (.hostConfig
     builder
-    (-> (HostConfig/builder)
-        (.extraHosts (map (fn [[host ip]] (str host ":" ip)) (:extra-hosts host-cfg)))
-        (.build))))
+    (.build
+      (-|> (HostConfig/builder)
+           (.networkMode (:network-mode host-cfg))
+           (.extraHosts (map (fn [[host ip]] (str host ":" ip)) (:extra-hosts host-cfg)))))))
 
 (defn- create-container-cfg
   [desc]

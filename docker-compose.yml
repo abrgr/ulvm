@@ -5,7 +5,7 @@ services:
       context: .
     image: ulvm:latest
     volumes:
-     - .:/usr/src/app
+     - "/c/Users/Adam Berger/Documents/dev/ulvm:/usr/src/app"
      - /var/run/docker.sock:/var/run/docker.sock
     network_mode: "bridge"
   repl:
@@ -13,7 +13,7 @@ services:
       context: .
     image: ulvm:latest
     volumes:
-     - .:/usr/src/app
+     - "/c/Users/Adam Berger/Documents/dev/ulvm:/usr/src/app"
      - /var/run/docker.sock:/var/run/docker.sock
     command: "lein repl :headless :host 0.0.0.0 :port 7888"
     ports:
@@ -24,7 +24,7 @@ services:
       context: ./examples/mod-combinators/js-sync
     image: ulvm-js-sync:latest
     volumes:
-     - ./examples/mod-combinators/js-sync:/usr/src/app
+     - "/c/Users/Adam Berger/Documents/dev/ulvm/examples/mod-combinators/js-sync:/usr/src/app"
     command: "lein repl :headless :host 0.0.0.0 :port 7889"
     ports:
      - "7889:7889"
@@ -34,22 +34,24 @@ services:
       context: ./examples/mod-combinators/js-sync
     image: ulvm-js-sync:latest
     volumes:
-     - ./examples/mod-combinators/js-sync:/usr/src/app
+     - "/c/Users/Adam Berger/Documents/dev/ulvm/examples/mod-combinators/js-sync:/usr/src/app"
     network_mode: "bridge"
   nodejs-scope:
     build:
       context: ./examples/scopes/nodejs-scope
     image: ulvm-nodejs-scope:1.0.0
     volumes:
-     - ./examples/scopes/nodejs-scope:/usr/src/app
+     - "/c/Users/Adam Berger/Documents/dev/ulvm/examples/scopes/nodejs-scope:/usr/src/app"
     network_mode: "bridge"
   nodejs-scope-repl:
     build:
       context: ./examples/scopes/nodejs-scope
     image: ulvm-nodejs-scope:1.0.0
     volumes:
-      - ./examples/scopes/nodejs-scope:/usr/src/app
+      - "/c/Users/Adam Berger/Documents/dev/ulvm/examples/scopes/nodejs-scope:/usr/src/app"
     command: "lein repl :headless :host 0.0.0.0 :port 7890"
     ports:
      - "7890:7890"
     network_mode: "bridge"
+    extra_hosts:
+     - "my-bucket.my-region.adam.com:172.17.0.2"

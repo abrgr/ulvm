@@ -12,3 +12,4 @@ target
 .lein-plugins/
 .lein-failures
 .nrepl-port
+examples/todo/src

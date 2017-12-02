@@ -15,6 +15,7 @@
   (-> {}
       (assoc-in (k/gen-src-root '*root*) "src")
       (assoc-in (k/build-root '*root*)   "build")
+      (assoc-in (k/ulvm-root)            "ulvm")
       (assoc-in (k/fileserver-base-uri)  (str "http://"
                                               (java.util.UUID/randomUUID)
                                               ".embeded-fs.ulvm.org"

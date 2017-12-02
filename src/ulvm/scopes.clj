@@ -12,49 +12,37 @@
 (defprotocol Scope
   (-stop [scope prj]
     "Stops a scope")
-  (-write-dependencies [scope prj cfg mod-descriptors]
+  (-write-dependencies [scope prj mod-descriptors]
     "Writes scope dependencies given the set of module
      descriptors.  This is the time to create a
      dependency manifest and, if dependencies must
      be interrogated at compile-time, this is the
      time to download them as well.")
-  (-get-config [scope prj cfg]
-    "Applies the provided configuration to any 
-     default configuration and returns the
-     configuration to use.")
-  (-get-module-config [scope prj cfg mod-desc mod-cfg]
+  (-get-module-config [scope prj mod-desc mod-cfg]
     "Applies the provided configuration to any
      default configuration provided by the module
      and returns the configuration to use.")
-  (-get-implicit-modules [scope prj cfg]
+  (-get-implicit-modules [scope prj]
     "Returns a map of names to modules that the scope
      implicitly provides.")
-  (-resolve-name [scope prj config name-parts]
+  (-resolve-name [scope prj name-parts]
     "Resolves name-parts into a valid name in this scope."))
 
 (defn- scope-with-renv
-  [renv]
+  [renv cfg]
   ; TODO: we should only use these with-fallbacks if we can't find
   ;       the ideal flow.  We don't want to swallow actual errors.
   (reify Scope
     (-stop [scope prj]
       (renv/stop prj renv))
-    (-write-dependencies [scope prj cfg mod-descriptors]
+    (-write-dependencies [scope prj mod-descriptors]
       (renv/invoke-ideal-flow
         prj
         renv
         :org.ulvm.scope/write-dependencies
         {:mod-descriptors mod-descriptors
          :cfg             cfg}))
-    (-get-config [scope prj cfg]
-      (futil/with-fallback
-        (renv/invoke-ideal-flow
-          prj
-          renv
-          :org.ulvm.scope/get-config
-          {:config cfg})
-        cfg))
-    (-get-module-config [scope prj cfg mod-desc mod-cfg]
+    (-get-module-config [scope prj mod-desc mod-cfg]
       (futil/with-fallback
         (renv/invoke-ideal-flow
           prj
@@ -64,7 +52,7 @@
            :cfg                cfg
            :mod-cfg            mod-cfg})
         mod-cfg))
-    (-get-implicit-modules [scope prj cfg]
+    (-get-implicit-modules [scope prj]
       (futil/with-fallback
         (renv/invoke-ideal-flow
           prj
@@ -72,7 +60,7 @@
           :org.ulvm.scope/get-implicit-modules
           {:cfg cfg})
         {}))
-    (-resolve-name [scope prj cfg name-parts]
+    (-resolve-name [scope prj name-parts]
       (futil/with-fallback
         (renv/invoke-ideal-flow
           prj
@@ -91,28 +79,24 @@
   (-stop scope prj))
 
 (defn write-dependencies
-  [scope prj cfg mod-descriptors]
-  (-write-dependencies scope prj cfg mod-descriptors))
-
-(defn get-config
-  [scope prj cfg]
-  (-get-config scope prj cfg))
+  [scope prj mod-descriptors]
+  (-write-dependencies scope prj mod-descriptors))
 
 (defn get-module-config
-  [scope prj cfg mod-desc mod-cfg]
-  (-get-module-config scope prj cfg mod-desc mod-cfg))
+  [scope prj mod-desc mod-cfg]
+  (-get-module-config scope prj mod-desc mod-cfg))
 
 (defn get-implicit-modules
-  [scope prj cfg]
-  (-get-implicit-modules scope prj cfg))
+  [scope prj]
+  (-get-implicit-modules scope prj))
 
 (defn resolve-name
-  [scope prj config name-parts]
-  (-resolve-name scope prj config name-parts))
+  [scope prj name-parts]
+  (-resolve-name scope prj name-parts))
 
-(defn with-scope-paths
-  "Merge the paths for the well-known directories into the scope
-   config if they are not already provided."
+(defn with-default-scope-cfg
+  "Merge the default scope config into the scope config if they are not
+   already provided."
   [prj scope-name cfg]
   (futil/mlet e/context
               [prj-root    (uprj/get-env prj (k/project-root))
@@ -123,13 +107,25 @@
     (merge
       cfg
       {::gen-src-dir (u/resolve-path prj-root src-root scope-src)
-       ::build-dir   (u/resolve-path prj-root build-root scope-build)})))
+       ::build-dir   (u/resolve-path prj-root build-root scope-build)
+       ::scope-name  scope-name
+       ::fs-secret   (java.util.UUID/randomUUID)})))
+
+(defn- get-cfg
+  [prj renv cfg]
+  (futil/with-fallback
+    (renv/invoke-ideal-flow
+      prj
+      renv
+      :org.ulvm.scope/get-config
+      {:config cfg})
+    cfg))
 
 (defn make-scope
   "Make a scope instance"
   [proj scope-name scope-ent]
   (let [cfg               (->> (get scope-ent ::ucore/config)
-                               (with-scope-paths proj scope-name))
+                               (with-default-scope-cfg proj scope-name))
         k                 (k/scope-config-keypath scope-name)
         prj               (uprj/set-env proj k cfg)
         {p           :prj
@@ -140,6 +136,7 @@
           {:prj   p
            :scope (e/left err)})
         (fn [renv]
-          {:prj   (renv/launch p renv [k])
-           :scope (e/right (scope-with-renv renv))})
+          (let [prj (renv/launch p renv [k])]
+            {:prj   prj
+             :scope (e/right (scope-with-renv renv (get-cfg prj renv cfg)))}))
         renv-either))))

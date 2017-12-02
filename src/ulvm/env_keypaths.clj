@@ -72,6 +72,11 @@
   ([scope-name]
     (conj (build-root) scope-name)))
 
+(defn ulvm-root
+  "ULVM source directory relative to project directory"
+  ([]
+    [::ucore/ulvm-root]))
+
 (defn fileserver-base-uri
   "Base URI for the embedded file server that we run to allow scopes to write
    to disk"

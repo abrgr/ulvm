@@ -5,20 +5,12 @@
             [javax.crypto.spec SecretKeySpec]
             [java.security MessageDigest]))
 
-; hex conversion from: https://stackoverflow.com/questions/9655181/how-to-convert-a-byte-array-to-a-hex-string-in-java
-
-(def ^{:private true} hex-chars
-  (char-array "0123456789ABCDEF"))
-
-(defn- as-hex [bytes]
-  )
+; Essentially lifted from: http://sapient-pair.com/blog/2016/03/08/clojure-aws4-auth/
 
 (defn- ^String as-hex-str [bytes]
   (->> bytes
        (map #(format "%02x" (if (neg? %) (bit-and % 0xFF) %)))
        (apply str)))
-
-; Essentially lifted from: http://sapient-pair.com/blog/2016/03/08/clojure-aws4-auth/
 
 (defn- ^bytes to-utf8 [s]
   (.getBytes (str s) "utf-8"))

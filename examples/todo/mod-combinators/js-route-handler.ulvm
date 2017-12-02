@@ -9,7 +9,8 @@
      :ulvm.core/runner
      {:ulvm.core/builtin-runner-name :ulvm.runners/docker-container
       :ulvm.core/runner-descriptor
-      {:image (ulvm.core/from-env :image)}}}}
+      {:image (ulvm.core/from-env :image)
+       :host-cfg {:network-mode "bridge"}}}}}
    :ulvm.core/exported-flows
    {:org.ulvm.mod-combinators.js-route-handler/block-with-results
     {:ulvm.core/runner

@@ -87,55 +87,65 @@
     (string/starts-with? path prefix)))
 
 (defn- with-verified-req
-  [prj req app]
-  (let [scopes      (get-in prj [:entities :ulvm.core/scopes])
-        bucket      (resolve-bucket req)
-        scope       (get scopes (keyword bucket))
-        path        (-> req
-                        (:uri)
-                        (URI.)
-                        (.getPath)
-                        (io/file)
-                        (.getCanonicalPath))
-        valid-path? (or (path-prefix?
-                          (get-in scope [:ulvm.core/config
-                                         :ulvm.scopes/gen-src-dir])
-                          path)
-                        (path-prefix?
-                          (get-in scope [:ulvm.core/config
-                                         :ulvm.scopes/build-dir])
-                          path))]
+  [prj req scope-name app]
+  (futil/mlet e/context
+              [scopes         (get-in prj [:entities :ulvm.core/scopes])
+               scope          (get scopes scope-name)
+               scope-cfg      (uprj/get-env prj (k/scope-config-keypath scope-name))
+               path           (-> req
+                                  (:uri)
+                                  (URI.)
+                                  (.getPath)
+                                  (io/file)
+                                  (.getCanonicalPath))
+               expected-src   (get scope-cfg :ulvm.scopes/gen-src-dir)
+               expected-build (get scope-cfg :ulvm.scopes/build-dir)
+               valid-path?    (or (path-prefix? expected-src path)
+                                  (path-prefix? expected-build path))]
     (if (and (some? scope)
              valid-path?)
-      (app (merge req {:verified-scope scope
-                       :verified-path  path}))
-      {:status 403
-       :body   "Unauthorized"})))
+      (e/right
+        (app (merge req {:verified-scope scope
+                         :verified-path  path})))
+      (e/left "Unauthorized"))))
 
 (defn- verify-auth
   [prj app]
   (fn [req]
-    (let [{:keys [headers
-                  uri
-                  request-method]} req
-          auth-header              (get headers "authorization")
-          auth                     (auth-parts auth-header)
-          req-method               (-> request-method
-                                       name
-                                       string/upper-case)
-          calculated-auth          (aws-auth/aws4-auth
-                                     req-method
-                                     uri
-                                     headers
-                                     (get auth :signed-headers)
-                                     (get auth :region)
-                                     "s3"
-                                     (get auth :access-key)
-                                     "my-secret")]
-        (if (= calculated-auth auth-header)
-          (with-verified-req prj req app)
-          {:status 403
-           :body   "Unauthorized"}))))
+    (m/extract
+      (m/bimap
+        #(do (println "Unauthorized request" req %)
+             {:status 403
+              :body   "Unauthorized"})
+        identity
+        (futil/mlet e/context
+                    [{:keys [headers
+                              uri
+                              request-method]} req
+                     auth-header               (get headers "authorization")
+                     auth                      (auth-parts auth-header)
+                     req-method                (-> request-method
+                                                   name
+                                                   string/upper-case)
+                     bucket                    (resolve-bucket req)
+                     scope-name                (keyword bucket)
+                     scope-cfg                 (uprj/get-env
+                                                 prj
+                                                 (k/scope-config-keypath
+                                                   scope-name))
+                     secret                    (get scope-cfg :ulvm.scopes/fs-secret)
+                     calculated-auth           (aws-auth/aws4-auth
+                                                 req-method
+                                                 uri
+                                                 headers
+                                                 (get auth :signed-headers)
+                                                 (get auth :region)
+                                                 "s3"
+                                                 (get auth :access-key)
+                                                 secret)]
+            (if (= calculated-auth auth-header)
+              (with-verified-req prj req scope-name app)
+              (e/left "Unauthorized")))))))
 
 (defn- routes
   [prj]

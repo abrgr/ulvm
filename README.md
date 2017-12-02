@@ -106,6 +106,7 @@ Stored in a map under the `:attr` key in a module combinator's config.
 #### Scope configs
  - `:ulvm.scopes/gen-src-dir` - Added to a scope config to indicate the directory to write the scope's src to.
  - `:ulvm.scopes/build-dir` - Added to a scope config to indicate the directory to write the compiled artifact to.
+ - `:ulvm.scopes/scope-name` - Added to a scope config to indicate the name of the scope.
  
 # TODO
 [ ] Handle transformers.

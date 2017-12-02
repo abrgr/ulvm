@@ -11,8 +11,17 @@
       :ulvm.core/runner-descriptor
       {:image (ulvm.core/from-env :image)
        :host-cfg
-        {:extra-hosts
-         {(ulvm.core/eval (-> (ulvm.core/from-env :ulvm.core/fileserver-base-uri) (java.net.URI.) (.getHost))) (ulvm.core/from-env :ulvm.core/fileserver-ip)}}}}}}
+        {:network-mode "bridge"
+         :extra-hosts
+         {(ulvm.core/eval
+            (->> (ulvm.core/from-env :ulvm.core/fileserver-base-uri)
+                 (java.net.URI.)
+                 (.getHost)
+                 (str (name (ulvm.core/from-env :ulvm.scopes/scope-name)) "." )))
+          (ulvm.core/from-env :ulvm.core/fileserver-ip)}}
+       :env {"SCOPE_NAME"  (ulvm.core/eval (name (ulvm.core/from-env :ulvm.scopes/scope-name)))
+             "FS_BASE_URI" (ulvm.core/from-env :ulvm.core/fileserver-base-uri)
+             "SECRET_KEY"  (ulvm.core/from-env :ulvm.scopes/fs-secret)}}}}}
    :ulvm.core/exported-flows
    {:org.ulvm.node/write-dependencies
     {:ulvm.core/runner

@@ -16,6 +16,7 @@
             [ulvm.env :as env]
             [ulvm.fileserver :as fs]
             [clojure.set :as cset]
+            [clojure.java.io :as io]
             [cats.core :as m]
             [cats.monad.either :as e]))
 
@@ -30,8 +31,11 @@
 (defn ulvm-compile
   "Compile a ulvm system"
   [cmd-line-env project-dir]
-  (let [ulvm-entities   (uread/read-ulvm-dir project-dir)
-        env             (env/resolve-initial-env cmd-line-env project-dir)
+  (let [env             (env/resolve-initial-env cmd-line-env project-dir)
+        ulvm-path       (-> project-dir
+                            (io/file (get-in env (k/ulvm-root)))
+                            (.getPath))
+        ulvm-entities   (uread/read-ulvm-dir ulvm-path)
         empty-project   (uprj/init ulvm-entities env)
         prj-with-scopes (build-scopes empty-project)]
     prj-with-scopes)) ; TODO
@@ -48,16 +52,13 @@
             (fn [info [scope-name scope-ent]]
               (let [{:keys [prj
                             mods
-                            scope
-                            scope-cfg]}           (make-scope (:prj info) scope-name scope-ent)]
+                            scope]}           (make-scope (:prj info) scope-name scope-ent)]
                 {:prj                 prj
                  :mods                (-> (:mods info) (merge {scope-name mods}))
-                 :scopes              (-> (:scopes info) (merge {scope-name scope}))
-                 :scope-cfgs          (-> (:scope-cfgs info) (merge {scope-name scope-cfg}))}))
+                 :scopes              (-> (:scopes info) (merge {scope-name scope}))}))
             {:prj                 prj
              :mods                {}
-             :scopes              {}
-             :scope-cfgs          {}})
+             :scopes              {}})
            (merge {:mod-combinators     mod-combinators
                    :mod-combinator-cfgs mod-combinator-cfgs})))))
 
@@ -67,7 +68,6 @@
   (let [{:keys [prj
                 mods
                 scopes
-                scope-cfgs
                 mod-combinators
                 mod-combinator-cfgs]} (make-scopes proj)]
     (fs/with-fs prj
@@ -79,7 +79,6 @@
            mod-combinator-cfgs
            mods
            scope-name
-           (get scope-cfgs scope-name)
            (get scopes scope-name)))
        prj
        (get-in prj [:entities ::ucore/scopes])))))
@@ -156,8 +155,8 @@
 
 (defn- scope-modules
   "Return a map from module names to their representations"
-  [prj scope scope-ent cfg scope-name]
-  (let [implicits (scopes/get-implicit-modules scope prj cfg)
+  [prj scope scope-ent scope-name]
+  (let [implicits (scopes/get-implicit-modules scope prj)
         explicits (-> (uprj/get-prj-ent prj ::ucore/scopes scope-name)
                       (get ::ucore/modules))
         all-mods  (merge implicits explicits)]
@@ -169,23 +168,22 @@
                 (scopes/get-module-config
                   scope
                   prj
-                  cfg
                   (::ucore/mod-descriptor m)
                   (get m ::ucore/config {}))
                 (assoc m ::ucore/config))]))
          (into {}))))
 
 (defn- resolve-name
-  [prj scope cfg & name-parts]
+  [prj scope & name-parts]
   (->> name-parts
        (map name)
-       (scopes/resolve-name scope prj cfg)))
+       (scopes/resolve-name scope prj)))
 
 (defn- module-for-invocation
   "The module that the given invocation references.
    A scope-name is used to disambiguate references to
    local modules."
-  [prj mods scope-name scope scope-cfg inv]
+  [prj mods scope-name scope inv]
   (let [inv-mod     (->> [(:invocation-module inv)]
                          (into {}))
         scope-mod      (:scope-module inv-mod)
@@ -202,16 +200,16 @@
     {:mod          module
      :mod-name     (->> module-name
                         str
-                        (resolve-name prj scope scope-cfg))
+                        (resolve-name prj scope))
      :scope        mod-scope-name}))
 
 (defn- enhance-invocations
-  [prj mods scope-name scope scope-cfg invs]
+  [prj mods scope-name scope invs]
   (->> invs
        (map
          (fn [[n inv]]
            [n 
-            (-> (module-for-invocation prj mods scope-name scope scope-cfg inv)
+            (-> (module-for-invocation prj mods scope-name scope inv)
                 (merge {:inv         inv}))]))
        (filter
          #(= scope-name (:scope (second %))))
@@ -228,20 +226,19 @@
        (concat [:*default*])))
 
 (defn- get-sub-result-names
-  [prj scope-name scope scope-cfg enhanced-invs inverse-deps inv-name inv]
+  [prj scope-name scope enhanced-invs inverse-deps inv-name inv]
   (->> (get-sub-results enhanced-invs inverse-deps inv-name)
        (u/map-to-vals
          (partial
            resolve-name
            prj
            scope
-           scope-cfg
            (u/get-in inv [:inv :name :name])))))
 
 (defn- add-result-names
   "Get the usages for the result of each inv, get the names for
    them, and annotate the inv with its result names."
-  [prj scope-name scope scope-cfg inverse-deps enhanced-invs]
+  [prj scope-name scope inverse-deps enhanced-invs]
   (->> enhanced-invs
        (map
          (fn [[n inv]]
@@ -253,7 +250,6 @@
                  prj
                  scope-name
                  scope
-                 scope-cfg
                  enhanced-invs
                  inverse-deps
                  n
@@ -346,12 +342,12 @@
 
 (defn- build-flow-in-scope
   "Builds the portion of a flow contained in a scope"
-  [proj graph-cfg mod-combinators mods scope-name scope scope-cfg flow-name flow]
+  [proj graph-cfg mod-combinators mods scope-name scope flow-name flow]
   (let [invs          (->> (get flow :invocations)
                            named-invocations)
         deps          (invocation-dependency-graph invs)
         inverse-deps  (u/flip-map deps)
-        enhanced-invs (enhance-invocations proj mods scope-name scope scope-cfg invs)
+        enhanced-invs (enhance-invocations proj mods scope-name scope invs)
         ; TODO: this is wrong - we need something more
         ;       intelligent to split a flow into steps for a scope
         relevant-invs (->> invs
@@ -365,7 +361,6 @@
                                   proj
                                   scope-name
                                   scope
-                                  scope-cfg
                                   inverse-deps)
                                 (add-arg-names flow-args-set))]
     (m/->>= (ordered-invocations relevant-invs deps flow-args)
@@ -389,20 +384,19 @@
                                                      ::ucore/module))
                      :scope-name keyword?
                      :scope      #(satisfies? scopes/Scope %)
-                     :scope-cfg  map?
                      :flow-name  keyword?
                      :flow       map?)
         :ret  ::uprj/project)
 
 (defn- build-flows-in-scope
   "Builds all flows for the given scope."
-  [proj graph-cfg mod-combinators mods scope-name scope scope-cfg]
+  [proj graph-cfg mod-combinators mods scope-name scope]
   (->> (get-in proj [:entities ::ucore/flows])
        (reduce
          (fn [prj [flow-name flow]]
             (->> flow
                  (uprj/canonical-flow)
-                 (build-flow-in-scope prj graph-cfg mod-combinators mods scope-name scope scope-cfg flow-name)
+                 (build-flow-in-scope prj graph-cfg mod-combinators mods scope-name scope flow-name)
                  (uprj/set-env prj (k/build-flow-in-scope-keypath scope-name flow-name))))
          proj)))
 
@@ -417,8 +411,7 @@
                                            (s/map-of keyword?
                                                      ::ucore/module))
                      :scope-name keyword?
-                     :scope      #(satisfies? scopes/Scope %)
-                     :scope-cfg  map?)
+                     :scope      #(satisfies? scopes/Scope %))
         :ret  ::uprj/project)
 
 (defn- get-mod-combinators
@@ -455,18 +448,15 @@
                 [res   (scopes/make-scope proj scope-name scope-ent)
                  scope (:scope res)
                  prj   (:prj res)
-                 cfg   (scopes/get-config scope prj (get scope-ent ::ucore/config {}))
-                 mods  (scope-modules prj scope scope-ent cfg scope-name)]
+                 mods  (scope-modules prj scope scope-ent scope-name)]
       {:prj                 (uprj/set-env prj (k/make-scope-keypath scope-name) :success)
        :mods                mods
-       :scope               scope
-       :scope-cfg           cfg})
+       :scope               scope})
     (futil/recover-with 
       (fn [v]
         {:prj   (uprj/set-env proj (k/make-scope-keypath scope-name) v)
          :mods                {}
-         :scope               nil
-         :scope-cfg           nil}))))
+         :scope               nil}))))
 
 (s/fdef make-scope
         :args (s/cat :prj        ::uprj/project
@@ -476,20 +466,16 @@
 
 (defn- build-scope
   "Builds a scope"
-  [prj mod-combinators mod-combinator-cfgs mods scope-name scope-cfg scope]
+  [prj mod-combinators mod-combinator-cfgs mods scope-name scope]
   (->
     (futil/mlet e/context
                 [graph-cfg {:mod-combinator-cfgs mod-combinator-cfgs}
-                 built-prj (build-flows-in-scope prj graph-cfg mod-combinators mods scope-name scope scope-cfg)]
+                 built-prj (build-flows-in-scope prj graph-cfg mod-combinators mods scope-name scope)]
                 (uprj/set-env
                   built-prj
                   (k/scope-deps-keypath scope-name)
                   (scopes/write-dependencies
                     scope
                     built-prj
-                    ; TODO: figure out directory mounts and
-                    ;       re-mapping of filenames
-                    (merge scope-cfg
-                           {:ulvm.scopes/src-dir "src"})
                     (scope-mod-descs (get mods scope-name)))))
     (futil/recover-with #(uprj/set-env prj (k/scope-deps-keypath scope-name) %))))

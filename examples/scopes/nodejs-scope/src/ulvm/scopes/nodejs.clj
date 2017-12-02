@@ -35,15 +35,16 @@
   
   (c/POST "/write-deps" {:keys [params]}
     (println "Processing /write-deps :" params)
-    (let [{:keys [cfg mod-descs]} params
-           res                    (write-deps/write cfg mod-descs)]
+    (let [{:keys [cfg mod-descriptors]} params
+           res                    (write-deps/write cfg mod-descriptors)]
       (if (contains? res :err)
         {:status  400
          :headers default-headers
          :body    (get res :err)}
-        (do (println "RETURNING: " res) {:status  200
-         :headers default-headers
-         :body    (get res :res)})))))
+        (do (println "RETURNING: " res)
+            {:status  200
+             :headers default-headers
+             :body    (pr-str (get res :res))})))))
 
 (defn -main
   [& _]
