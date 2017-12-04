@@ -20,7 +20,7 @@
               prj
               renv
               :org.ulvm.mod-combinator/block-with-results)
-            m/return))
+            ((comp m/return first))))
   (-get-mod-combinator-config [this prj config]
     ; TODO: with-fallback is silly here; don't swallow actual errors
     (futil/with-fallback

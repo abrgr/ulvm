@@ -26,7 +26,9 @@
     "Returns a map of names to modules that the scope
      implicitly provides.")
   (-resolve-name [scope prj name-parts]
-    "Resolves name-parts into a valid name in this scope."))
+    "Resolves name-parts into a valid name in this scope.")
+  (-write-flow [scope prj flow-name flow]
+    "Writes this scope's portion of flow."))
 
 (defn- scope-with-renv
   [renv cfg]
@@ -62,17 +64,26 @@
         {}))
     (-resolve-name [scope prj name-parts]
       (futil/with-fallback
-        (renv/invoke-ideal-flow
-          prj
-          renv
-          :org.ulvm.scope/resolve-name
-          {:config     cfg
-           :name-parts name-parts})
+        (m/->>= (e/right {:cfg        cfg
+                          :name-parts name-parts})
+                (renv/invoke-ideal-flow
+                  prj
+                  renv
+                  :org.ulvm.scope/resolve-name)
+                ((comp m/return :name first)))
         (->> name-parts
              (map name)
              (interpose "_")
              (apply str)
-             symbol)))))
+             symbol)))
+    (-write-flow [scope prj flow-name flow-ast]
+      (renv/invoke-ideal-flow
+        prj
+        renv
+        :org.ulvm.scope/write-flow
+        {:cfg       cfg
+         :flow-name flow-name
+         :flow-ast  flow-ast}))))
 
 (defn stop
   [scope prj]
@@ -93,6 +104,10 @@
 (defn resolve-name
   [scope prj name-parts]
   (-resolve-name scope prj name-parts))
+
+(defn write-flow
+  [scope prj flow-name flow-ast]
+  (-write-flow scope prj flow-name flow-ast))
 
 (defn with-default-scope-cfg
   "Merge the default scope config into the scope config if they are not

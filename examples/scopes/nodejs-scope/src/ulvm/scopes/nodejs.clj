@@ -1,6 +1,8 @@
 (ns ^{:author "Adam Berger"} ulvm.scopes.nodejs
-  "Synchronous Javascript Module Combinator"
+  "NodeJS Scope"
   (:require [ulvm.scopes.nodejs.write-deps :as write-deps]
+            [ulvm.scopes.nodejs.resolve-name :as resolve-name]
+            [ulvm.scopes.nodejs.write-flow :as write-flow]
             [org.httpkit.server :as h]
             [compojure.core :as c]
             [ring.middleware.edn :as redn]))
@@ -29,9 +31,24 @@
 
   (c/POST "/resolve-name" {:keys [params]}
     (println "Processing /resolve-name :" params)
-    {:status  200
-     :headers default-headers
-     :body    (pr-str 'todo)})
+    (let [{:keys [name-parts]} params]
+      {:status  200
+       :headers default-headers
+       :body    (pr-str {:name (resolve-name/n name-parts)})}))
+
+  (c/POST "/write-flow" {:keys [params]}
+    (println "Processing /write-flow :" params)
+    (let [{:keys [cfg
+                  flow-name
+                  flow-ast]} params
+          res                (write-flow/f cfg flow-name flow-ast)]
+      (if (contains? res :err)
+        {:status  400
+         :headers default-headers
+         :body    (pr-str (get res :err))}
+        {:status  200
+         :headers default-headers
+         :body    (pr-str (get res :res))})))
   
   (c/POST "/write-deps" {:keys [params]}
     (println "Processing /write-deps :" params)

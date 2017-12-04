@@ -342,12 +342,12 @@
 
 (defn- build-flow-in-scope
   "Builds the portion of a flow contained in a scope"
-  [proj graph-cfg mod-combinators mods scope-name scope flow-name flow]
+  [prj graph-cfg mod-combinators mods scope-name scope flow-name flow]
   (let [invs          (->> (get flow :invocations)
                            named-invocations)
         deps          (invocation-dependency-graph invs)
         inverse-deps  (u/flip-map deps)
-        enhanced-invs (enhance-invocations proj mods scope-name scope invs)
+        enhanced-invs (enhance-invocations prj mods scope-name scope invs)
         ; TODO: this is wrong - we need something more
         ;       intelligent to split a flow into steps for a scope
         relevant-invs (->> invs
@@ -358,14 +358,14 @@
         flow-args-set      (set flow-args)
         named-invs         (->> enhanced-invs
                                 (add-result-names
-                                  proj
+                                  prj
                                   scope-name
                                   scope
                                   inverse-deps)
                                 (add-arg-names flow-args-set))]
     (m/->>= (ordered-invocations relevant-invs deps flow-args)
             (b/build-call-graph
-              proj
+              prj
               scope-name
               scope
               flow-name
@@ -373,7 +373,8 @@
               inverse-deps
               graph-cfg
               named-invs)
-            (#(gen-ast proj graph-cfg mod-combinators flow-args-set %)))))
+            (gen-ast prj graph-cfg mod-combinators flow-args-set)
+            (scopes/write-flow scope prj flow-name))))
 
 (s/fdef build-flow-in-scope
         :args (s/cat :prj        ::uprj/project
