@@ -1,6 +1,6 @@
 (ns ^{:author "Adam Berger"} ulvm.scopes.nodejs.write-deps
   "Synchronous Javascript Module Combinator Dependency Writer"
-  (:require [clojure.data.json :as json]
+  (:require [cheshire.core :as json]
             [clojure.string :as string]
             [cats.monad.either :as e]
             [clojure.java.io :as io]
@@ -54,8 +54,8 @@
                        (.getPath))
                    ; s3 keys do not start with a slash
         k          (string/replace-first path #"^[/]" "")
-        contents   (->> (pkg-json cfg descs)
-                        json/write-str)
+        contents   (-> (pkg-json cfg descs)
+                       (json/generate-string {:pretty true, :escape-non-ascii true}))
         stream     (java.io.ByteArrayInputStream. (.getBytes contents "utf-8"))
         bucket     (System/getenv "SCOPE_NAME")]
     (s3/put-object

@@ -83,7 +83,7 @@
    {:ulvm.core/builtin-runnable-env-loader-name :ulvm.re-loaders/project-file
     :ulvm.core/runnable-env-descriptor {:path "scopes/nodejs.ulvm"}}
    :ulvm.core/parent-scope :todo-svc-container
-   :ulvm.core/config {pkg-cfg {
+   :ulvm.core/config {:pkg-cfg {
      :name        "todo-svc"
      :version     "1.0.0"
      :description "Todo service"
