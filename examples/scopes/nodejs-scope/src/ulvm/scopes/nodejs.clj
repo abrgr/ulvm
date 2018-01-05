@@ -40,8 +40,9 @@
     (println "Processing /write-flow :" params)
     (let [{:keys [cfg
                   flow-name
+                  flow-args
                   flow-ast]} params
-          res                (write-flow/f cfg flow-name flow-ast)]
+          res                (write-flow/f cfg flow-name flow-args flow-ast)]
       (if (contains? res :err)
         {:status  400
          :headers default-headers

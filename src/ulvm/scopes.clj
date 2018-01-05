@@ -27,7 +27,7 @@
      implicitly provides.")
   (-resolve-name [scope prj name-parts]
     "Resolves name-parts into a valid name in this scope.")
-  (-write-flow [scope prj flow-name flow]
+  (-write-flow [scope prj flow-name flow-args flow-ent flow-ast]
     "Writes this scope's portion of flow."))
 
 (defn- scope-with-renv
@@ -76,13 +76,15 @@
              (interpose "_")
              (apply str)
              symbol)))
-    (-write-flow [scope prj flow-name flow-ast]
+    (-write-flow [scope prj flow-name flow-args flow-ent flow-ast]
       (renv/invoke-ideal-flow
         prj
         renv
         :org.ulvm.scope/write-flow
         {:cfg       cfg
          :flow-name flow-name
+         :flow-args flow-args
+         :flow-ent  flow-ent
          :flow-ast  flow-ast}))))
 
 (defn stop
@@ -106,8 +108,8 @@
   (-resolve-name scope prj name-parts))
 
 (defn write-flow
-  [scope prj flow-name flow-ast]
-  (-write-flow scope prj flow-name flow-ast))
+  [scope prj flow-name flow-args flow-ent flow-ast]
+  (-write-flow scope prj flow-name flow-args flow-ent flow-ast))
 
 (defn with-default-scope-cfg
   "Merge the default scope config into the scope config if they are not

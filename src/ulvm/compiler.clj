@@ -374,7 +374,12 @@
               graph-cfg
               named-invs)
             (gen-ast prj graph-cfg mod-combinators flow-args-set)
-            (scopes/write-flow scope prj flow-name))))
+            (scopes/write-flow
+              scope
+              prj
+              flow-name
+              flow-args
+              (uprj/get-prj-ent prj ::ucore/flow flow-name)))))
 
 (s/fdef build-flow-in-scope
         :args (s/cat :prj        ::uprj/project
