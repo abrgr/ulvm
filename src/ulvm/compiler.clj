@@ -9,6 +9,7 @@
             [ulvm.re-loaders]
             [ulvm.mod-combinators]
             [ulvm.func-utils :as futil]
+            [ulvm.flows :as flows]
             [ulvm.utils :as u]
             [ulvm.env-keypaths :as k]
             [ulvm.scopes :as scopes]
@@ -38,7 +39,7 @@
         ulvm-entities   (uread/read-ulvm-dir ulvm-path)
         empty-project   (uprj/init ulvm-entities env)
         prj-with-scopes (build-scopes empty-project)]
-    prj-with-scopes)) ; TODO
+    prj-with-scopes))
 
 (defn- make-scopes
   [prj]
@@ -52,13 +53,13 @@
             (fn [info [scope-name scope-ent]]
               (let [{:keys [prj
                             mods
-                            scope]}           (make-scope (:prj info) scope-name scope-ent)]
-                {:prj                 prj
-                 :mods                (-> (:mods info) (merge {scope-name mods}))
-                 :scopes              (-> (:scopes info) (merge {scope-name scope}))}))
-            {:prj                 prj
-             :mods                {}
-             :scopes              {}})
+                            scope]} (make-scope (:prj info) scope-name scope-ent)]
+                {:prj    prj
+                 :mods   (-> (:mods info) (merge {scope-name mods}))
+                 :scopes (-> (:scopes info) (merge {scope-name scope}))}))
+            {:prj    prj
+             :mods   {}
+             :scopes {}})
            (merge {:mod-combinators     mod-combinators
                    :mod-combinator-cfgs mod-combinator-cfgs})))))
 
@@ -179,38 +180,20 @@
        (map name)
        (scopes/resolve-name scope prj)))
 
-(defn- module-for-invocation
-  "The module that the given invocation references.
-   A scope-name is used to disambiguate references to
-   local modules."
-  [prj mods scope-name scope inv]
-  (let [inv-mod     (->> [(:invocation-module inv)]
-                         (into {}))
-        scope-mod      (:scope-module inv-mod)
-        local-mod      (:local-module inv-mod)
-        ; we have to do some gymnastics to handle local and
-        ; scope modules
-        mod-scope-name (-> (or (:scope scope-mod)
-                               scope-name)
-                           keyword)
-        module-name    (-> (or (:module-name scope-mod)
-                               local-mod)
-                           keyword)
-        module         (get-in mods [mod-scope-name module-name])]
-    {:mod          module
-     :mod-name     (->> module-name
-                        str
-                        (resolve-name prj scope))
-     :scope        mod-scope-name}))
-
 (defn- enhance-invocations
   [prj mods scope-name scope invs]
   (->> invs
        (map
          (fn [[n inv]]
            [n 
-            (-> (module-for-invocation prj mods scope-name scope inv)
-                (merge {:inv         inv}))]))
+            (-> (flows/module-for-invocation mods scope-name inv)
+                (update
+                 :mod-name ; TODO: should probably name this something else
+                 (fn [mod-name]
+                   (->> mod-name
+                        str
+                        (resolve-name prj scope))))
+                (merge {:inv inv}))]))
        (filter
          #(= scope-name (:scope (second %))))
        (into {})))
@@ -455,14 +438,14 @@
                  scope (:scope res)
                  prj   (:prj res)
                  mods  (scope-modules prj scope scope-ent scope-name)]
-      {:prj                 (uprj/set-env prj (k/make-scope-keypath scope-name) :success)
-       :mods                mods
-       :scope               scope})
+      {:prj   (uprj/set-env prj (k/make-scope-keypath scope-name) :success)
+       :mods  mods
+       :scope scope})
     (futil/recover-with 
       (fn [v]
         {:prj   (uprj/set-env proj (k/make-scope-keypath scope-name) v)
-         :mods                {}
-         :scope               nil}))))
+         :mods  {}
+         :scope nil}))))
 
 (s/fdef make-scope
         :args (s/cat :prj        ::uprj/project
