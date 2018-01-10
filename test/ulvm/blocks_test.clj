@@ -70,7 +70,8 @@
               (-get-module-config [_ _ _ _] (e/right nil))
               (-get-implicit-modules [_ _] (e/right nil))
               (-resolve-name [scope prj name-parts] (e/right nil))
-              (-write-flow [_ _ _ _ _ _] (e/right nil)))
+              (-write-flow [_ _ _ _ _ _] (e/right nil))
+              (-get-config [_] {}))
             :test-flow
             deps
             (utils/flip-map deps)
@@ -136,7 +137,8 @@
               (-get-module-config [_ _ _ _] (e/right nil))
               (-get-implicit-modules [_ _] (e/right nil))
               (-resolve-name [scope prj name-parts] (e/right nil))
-              (-write-flow [_ _ _ _ _ _] (e/right nil)))
+              (-write-flow [_ _ _ _ _ _] (e/right nil))
+              (-get-config [_] {}))
             :test-flow
             deps
             (utils/flip-map deps)

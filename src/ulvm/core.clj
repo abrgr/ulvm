@@ -113,8 +113,11 @@
 (s/def ::transformers
   (s/map-of ::name ::transformer))
 
+(s/def ::home-scope ::name)
+
 (s/def ::flow-config
-  (s/keys :opt [::output-descriptor
+  (s/keys :opt [::home-scope
+                ::output-descriptor
                 ::flow-initializers
                 ::transformer-modules
                 ::transformers]))

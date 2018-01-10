@@ -110,12 +110,7 @@
 
 (deftest selective-eval
   (st/instrument (st/instrumentable-syms ['ulvm 'uprj]))
-  (let [prj {:entities        {}
-             :mod-combinators {}
-             :renv-loaders    {}
-             :renvs           {}
-             :env             {}}
-        to-eval {:a '(ulvm.core/eval (str "hello" " " "world"))}
-        evaled (uprj/selective-eval prj to-eval)]
+  (let [to-eval {:a '(ulvm.core/eval (str "hello" " " "world"))}
+        evaled (uprj/selective-eval to-eval)]
     (is (e/right? evaled))
     (is (= {:a "hello world"} (m/extract evaled)))))

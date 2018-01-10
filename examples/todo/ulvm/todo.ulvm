@@ -131,7 +131,8 @@
           (listen           {:app app, :port port})]})
 
 (ulvm.core/defflow :create-session [session username password]
-  {:ulvm.core/output-descriptor {:auth-err [(:err authorized-login)]
+  {:ulvm.core/home-scope        todo-svc
+   :ulvm.core/output-descriptor {:auth-err [(:err authorized-login)]
                                  :err      [(:err valid-login) (:err stored-session)]
                                  :success  [session-response]}
    :ulvm.core/transformer-modules {
@@ -163,7 +164,8 @@
      :send-http-request {
        :when {
          :phase :client-pre
-         :if    (and (contains *scope-tags* :js) (not (= *scope* todo-svc)))}
+         :if    (and (contains? (:tags *client-scope-cfg*) :js)
+                     (not (= *client-scope* 'todo-svc)))}
        :do [
          (http-send {:method  :post
                      :host    *server-host*
@@ -173,7 +175,7 @@
      :receive-http-request {
        :when {
          :phase :server-pre
-         :if (not (= *calling-scope* todo-svc))}
+         :if (not (= *client-scope* 'todo-svc))}
        :do [
          ; TODO: all server-pre transformers for a flow
          ;       MUST be invoked by some out-of-flow
@@ -190,13 +192,13 @@
          (map-get {:map (:body http-receive)
                    :key "password"}
                   :as session)
-         (*invocation* {:session session
-                        :username username
-                        :password password})]}
+         (*inv*   {:session session
+                   :username username
+                   :password password})]}
      :send-http-response {
        :when {
          :phase :server-post
-         :if (not (= *calling-scope* todo-svc))}
+         :if (not (= *client-scope* 'todo-svc))}
        :do [
          (http-respond {:res (:res http-receive)})]}}
    :flow-initializers {
@@ -217,7 +219,8 @@
                                                                      :after [stored-session]))
 
 (ulvm.core/defflow :create-todo [req]
-  {:ulvm.core/output-descriptor {:auth-err [(:err valid-auth)]
+  {:ulvm.core/home-scope        todo-svc
+   :ulvm.core/output-descriptor {:auth-err [(:err valid-auth)]
                                  :bad-req  [(:err valid-todo)]
                                  :err      []
                                  :success  [session-response]}

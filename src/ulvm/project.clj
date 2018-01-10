@@ -332,7 +332,7 @@
        (= (first x) s)))
 
 (defn replace-in-tree
-  [prj f next]
+  [f next]
   (loop [loc (any-zip f)]
     (if (z/end? loc)
       (e/right (z/root loc))
@@ -349,16 +349,14 @@
    (ulvm.core/eval (...)),
    returns a form with all eval invocations
    replaced with their values"
-  [prj f]
+  [f]
   (replace-in-tree
-    prj
     f
     #(if (invocation-of % 'ulvm.core/eval)
       {:replace-with (eval (second %))})))
 
 (s/fdef selective-eval
-        :args (s/cat :prj  ::project
-                     :form su/any)
+        :args (s/cat :form su/any)
         :ret (su/either-of? su/any su/any))
 
 (defn- resolve-env-ref
@@ -375,7 +373,6 @@
    replaced with their values"
   [prj ctxs f]
   (replace-in-tree
-    prj
     f
     #(if (invocation-of % 'ulvm.core/from-env)
       (let [val (resolve-env-ref prj ctxs %)]
@@ -393,16 +390,14 @@
   "Given a form that contains sub-forms that are
    symbol keys in the bindings map, replaces the
    references with their values"
-  [prj bindings f]
+  [bindings f]
   (replace-in-tree
-    prj
     f
     #(if (and (symbol? %) (contains? bindings %))
       {:replace-with (core-get bindings %)})))
 
 (s/fdef apply-bindings
-        :args (s/cat :prj  ::project
-                     :bindings map?
+        :args (s/cat :bindings map?
                      :form su/any)
         :ret (su/either-of? su/any su/any))
 
@@ -411,9 +406,9 @@
    configuration in the provided context"
   ([prj ctxs bindings cfg]
     (futil/mlet e/context
-                [bound    (apply-bindings prj bindings cfg)
+                [bound    (apply-bindings bindings cfg)
                  de-refed (resolve-env-refs prj ctxs bound)
-                 evaled   (selective-eval prj de-refed)]
+                 evaled   (selective-eval de-refed)]
                 (e/right evaled)))
   ([prj ctxs cfg]
     (eval-in-ctx prj ctxs {} cfg)))

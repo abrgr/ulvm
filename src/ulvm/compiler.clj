@@ -91,69 +91,6 @@
        (map ::ucore/mod-descriptor)
        (into #{})))
 
-(defn- default-invocation-name
-  [invocation]
-  (-> (get invocation :invocation-module)
-      (#(or (get-in % [:scope-module :module-name])
-            (get    % :local-module)))
-      (str "_")
-      (gensym)))
-
-(defn- invocation-name
-  "Returns the name for the result of an invocation"
-  [invocation]
-  (get-in
-    invocation
-    [:name :name]
-    (default-invocation-name invocation)))
-
-(defn- named-invocations
-  "Returns a map from result names to invocations"
-  [invocations]
-  (reduce
-    (fn [named inv]
-      (conj named [(invocation-name inv) inv]))
-    {}
-    invocations))
-
-(defn- invocation-deps
-  [invocation]
-  (cset/union
-    (->>
-      (get-in invocation [:after :names])
-      second
-      flatten
-      (filter identity)
-      (into #{}))
-    (->> (:args invocation)
-      (filter
-        (fn [[_ [arg-type arg]]]
-          (= :ref arg-type)))
-      (map
-        (fn [[_ [_ [ref-arg-type arg]]]]
-          (if (= :default-ref-arg ref-arg-type)
-            arg
-            (:result arg))))
-      (into #{}))))
-
-(defn- invocation-dependency-graph
-  "Returns a map from invocation name to a set of names of the invocations it depends on."
-  [invocations]
-  (reduce
-    (fn [deps [name invocation]]
-      (merge-with cset/union deps {name (invocation-deps invocation)}))
-    {}
-    invocations))
-
-(defn- ordered-invocations
-  "Returns a seq of topologically ordered invocation names"
-  [invs deps args]
-  (let [sorted  (u/topo-sort deps (keys invs) (into #{} args))]
-    (if (empty? (:unsat sorted))
-        (e/right (:items sorted))
-        (e/left  {:msg        "Failed to satisfy call graph dependencies"
-                  :unsat-deps (:unsat sorted)}))))
-
 (defn- scope-modules
   "Return a map from module names to their representations"
   [prj scope scope-ent scope-name]
@@ -241,7 +178,7 @@
 
 (defn- add-arg-names
   "Resolve the names of the arguments to the invocations."
-  [flow-args enhanced-invs]
+  [flow-params enhanced-invs]
   (->> enhanced-invs
        (map
          (fn [[n inv]]
@@ -256,7 +193,7 @@
                         (let [def-ref-arg   (u/get-in arg [:ref :default-ref-arg])
                               named-ref-arg (u/get-in arg [:ref :named-ref-arg])]
                           (cond
-                            (contains? flow-args def-ref-arg)
+                            (contains? flow-params def-ref-arg)
                             {:arg arg-name
                              :resolved def-ref-arg}
                             (some? def-ref-arg)
@@ -282,12 +219,12 @@
        (into {})))
 
 (defn- gen-block-ast
-  [prj graph-cfg mod-combinators flow-args block]
+  [prj graph-cfg mod-combinators flow-params block]
   (let [{:keys [provides
                 invs
                 depends-on
                 body]}     block
-        body-ast           (gen-ast prj graph-cfg mod-combinators flow-args body)
+        body-ast           (gen-ast prj graph-cfg mod-combinators flow-params body)
         mc-name            (->> invs
                                 first  ; the first [name, inv]
                                 second ; the inv
@@ -295,8 +232,8 @@
                                 ::ucore/mod-combinator-name)
         mc                 (get mod-combinators mc-name)
         mc-cfg             (get-in graph-cfg [:mod-combinator-cfgs mc-name])]
-    (if (cset/subset? provides flow-args)
-      ; we have no invocation for the flow-args
+    (if (cset/subset? provides flow-params)
+      ; we have no invocation for the flow-params
       body-ast
       (m/bind
         body-ast
@@ -309,7 +246,7 @@
 
 (defn- gen-ast
   "Generate an AST given a block graph"
-  [prj graph-cfg mod-combinators flow-args blocks]
+  [prj graph-cfg mod-combinators flow-params blocks]
   (reduce
     (fn [acc-either block]
       (m/mlet [acc       acc-either
@@ -317,7 +254,7 @@
                            prj
                            graph-cfg
                            mod-combinators
-                           flow-args
+                           flow-params
                            block)]
         (e/right (concat acc block-ast))))
     (e/right [])
@@ -327,8 +264,8 @@
   "Builds the portion of a flow contained in a scope"
   [prj graph-cfg mod-combinators mods scope-name scope flow-name flow]
   (let [invs          (->> (get flow :invocations)
-                           named-invocations)
-        deps          (invocation-dependency-graph invs)
+                           flows/named-invocations)
+        deps          (flows/invocation-dependency-graph invs)
         inverse-deps  (u/flip-map deps)
         enhanced-invs (enhance-invocations prj mods scope-name scope invs)
         ; TODO: this is wrong - we need something more
@@ -337,16 +274,16 @@
                            (filter
                              #(= (get-in enhanced-invs [(key %) :scope]) scope-name))
                            (into {}))
-        flow-args          (::ucore/args (meta flow))
-        flow-args-set      (set flow-args)
+        flow-params        (flows/flow-params flow)
+        flow-params-set    (set flow-params)
         named-invs         (->> enhanced-invs
                                 (add-result-names
                                   prj
                                   scope-name
                                   scope
                                   inverse-deps)
-                                (add-arg-names flow-args-set))]
-    (m/->>= (ordered-invocations relevant-invs deps flow-args)
+                                (add-arg-names flow-params-set))]
+    (m/->>= (flows/ordered-invocations relevant-invs deps flow-params)
             (b/build-call-graph
               prj
               scope-name
@@ -356,12 +293,12 @@
               inverse-deps
               graph-cfg
               named-invs)
-            (gen-ast prj graph-cfg mod-combinators flow-args-set)
+            (gen-ast prj graph-cfg mod-combinators flow-params-set)
             (scopes/write-flow
               scope
               prj
               flow-name
-              flow-args
+              flow-params
               (uprj/get-prj-ent prj ::ucore/flow flow-name)))))
 
 (s/fdef build-flow-in-scope

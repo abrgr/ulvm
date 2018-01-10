@@ -28,7 +28,9 @@
   (-resolve-name [scope prj name-parts]
     "Resolves name-parts into a valid name in this scope.")
   (-write-flow [scope prj flow-name flow-args flow-ent flow-ast]
-    "Writes this scope's portion of flow."))
+    "Writes this scope's portion of flow.")
+  (-get-config [scope]
+    "Retrieves the config for the scope."))
 
 (defn- scope-with-renv
   [renv cfg]
@@ -85,7 +87,9 @@
          :flow-name flow-name
          :flow-args flow-args
          :flow-ent  flow-ent
-         :flow-ast  flow-ast}))))
+         :flow-ast  flow-ast}))
+    (-get-config [scope]
+      cfg)))
 
 (defn stop
   [scope prj]
@@ -110,6 +114,10 @@
 (defn write-flow
   [scope prj flow-name flow-args flow-ent flow-ast]
   (-write-flow scope prj flow-name flow-args flow-ent flow-ast))
+
+(defn get-config
+  [scope]
+  (-get-config scope))
 
 (defn with-default-scope-cfg
   "Merge the default scope config into the scope config if they are not
