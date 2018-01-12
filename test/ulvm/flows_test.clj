@@ -42,6 +42,11 @@
                                         ::ucore/mod-descriptor {:npm "a"}}}
                           :scope-2 {:B {::ucore/mod-combinator-name :js-sync
                                         ::ucore/mod-descriptor {:npm "b"}
+                                        ::ucore/transformer-modules {
+                                          :prep-data {::ucore/mod-combinator-name :js
+                                                      ::ucore/mod-descriptor {:name "prep-data"}}
+                                          :http-send {::ucore/mod-combinator-name :js
+                                                      ::ucore/mod-descriptor {:name "http-send"}}}
                                         ::ucore/transformers {
                                           :send-http-req {
                                             :when {

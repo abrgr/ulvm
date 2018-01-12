@@ -197,6 +197,35 @@
    {}
    invs))
 
+(defn- transformers-for-rel-scope
+  [transformers rel-scope client-scope-name server-scope-name]
+  (let [def-scope-by-phase {:client-pre  client-scope-name
+                            :client-post client-scope-name
+                            :server-pre  server-scope-name
+                            :server-post server-scope-name}
+        phases             (if (= :client rel-scope)
+                               [:client-pre :client-post]
+                               [:server-pre :server-post])]
+    (map
+     #(some->> (get transformers %)
+               (s/conform ::ucore/flow-invocations)
+               named-invocations
+               (invs-with-default-scope (get def-scope-by-phase %)))
+     phases)))
+
+(defn- get-transformer-mods
+  [mod transformers]
+  (let [transformer-mods (->> transformers
+                              (apply concat)
+                              vals
+                              (map #(first (u/get-in % [:invocation-module :scope-module])))
+                              set)]
+    (->> (get mod ::ucore/transformer-modules)
+         (filter
+          (fn [[mod-name mod]]
+            (transformer-mods mod-name)))
+         (into {}))))
+
 (defn expand-transformers
   "Inlines applicable transformers for any module invocations in the flow."
   [prj mods named-scope-cfgs canonical-flow]
@@ -206,7 +235,7 @@
          :invocations
          named-invocations
          (reduce
-           (fn [named-invs [inv-name inv]]
+           (fn [acc [inv-name inv]]
              (let [{mod               :mod
                     server-scope-name :scope} (module-for-invocation mods nil inv)
                    server-scope-cfg           (get named-scope-cfgs server-scope-name)
@@ -223,26 +252,31 @@
                    ; TODO: only allow some bindings in some phases
                    transformers               (->> (get mod ::ucore/transformers)
                                                    (relevant-transformers prj (merge transformer-bindings param-bindings)))
-                   ; TODO: add the modules to the relevant scope
-                   all-transformers           (merge
-                                               (some->> (get transformers :client-pre)
-                                                        (s/conform ::ucore/flow-invocations)
-                                                        named-invocations
-                                                        (invs-with-default-scope client-scope-name))
-                                               (some->> (get transformers :server-pre)
-                                                        (s/conform ::ucore/flow-invocations)
-                                                        named-invocations
-                                                        (invs-with-default-scope server-scope-name))
-                                               (some->> (get transformers :server-post)
-                                                        (s/conform ::ucore/flow-invocations)
-                                                        named-invocations
-                                                        (invs-with-default-scope server-scope-name))
-                                               (some->> (get transformers :client-post)
-                                                        (s/conform ::ucore/flow-invocations)
-                                                        named-invocations
-                                                        (invs-with-default-scope client-scope-name)))
-                   ns-transformers            (invs-in-ns inv-name all-transformers)]
-               (if (empty? ns-transformers)
-                 (assoc named-invs inv-name inv)
-                 (merge named-invs ns-transformers))))
-           {}))))
+                   client-transformers        (transformers-for-rel-scope
+                                               transformers
+                                               :client
+                                               client-scope-name
+                                               server-scope-name)
+                   server-transformers        (transformers-for-rel-scope
+                                               transformers
+                                               :server
+                                               client-scope-name
+                                               server-scope-name)
+                   client-mods                (get-transformer-mods
+                                               mod
+                                               client-transformers)
+                   server-mods                (get-transformer-mods
+                                               mod
+                                               server-transformers)
+                   all-transformers           (->> (concat client-transformers server-transformers)
+                                                   (apply merge)
+                                                   (invs-in-ns inv-name))]
+               (if (empty? all-transformers)
+                 (assoc-in acc [:invs inv-name] inv)
+                 (merge-with
+                  merge
+                  {:extra-mods-by-scope {server-scope-name server-mods
+                                         client-scope-name client-mods}
+                   :invs                all-transformers}))))
+           {:extra-mods-by-scope {}
+            :invs                {}}))))
