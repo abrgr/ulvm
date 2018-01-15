@@ -63,6 +63,24 @@
            (merge {:mod-combinators     mod-combinators
                    :mod-combinator-cfgs mod-combinator-cfgs})))))
 
+(defn- expand-transformers
+  [prj mods scopes]
+  (let [named-scope-cfgs (reduce
+                           (fn [named-scope-cfgs scope]
+                             [(scopes/get-name scope) (scopes/get-config scope)])
+                           scopes)]
+    (->> (get-in prj [:entities ::ucore/flows])
+         (reduce
+          (fn [acc [flow-name flow]]
+            (let [canonical-flow (uprj/canonical-flow flow)
+                  expanded (flows/expand-transformers prj mods named-scope-cfgs canonical-flow)]
+              (merge-with
+               merge
+               acc
+               {:extra-mods-by-scope (get expanded :extra-mods-by-scope)
+                :canonical-flows     {flow-name (get expanded :canonical-flow)}})))
+          {}))))
+
 (defn- build-scopes
   "Builds all scopes"
   [proj]
@@ -70,7 +88,9 @@
                 mods
                 scopes
                 mod-combinators
-                mod-combinator-cfgs]} (make-scopes proj)]
+                mod-combinator-cfgs]} (make-scopes proj)
+        {:keys [extra-mods-by-scope
+                canonical-flows]}     (expand-transformers prj mods scopes)]
     (fs/with-fs prj
       (reduce
        (fn [prj [scope-name scope-ent]]
@@ -78,9 +98,10 @@
            prj
            mod-combinators
            mod-combinator-cfgs
-           mods
+           (merge-with merge mods extra-mods-by-scope) ; TODO: ensure uniqueness
            scope-name
-           (get scopes scope-name)))
+           (get scopes scope-name)
+           canonical-flows))
        prj
        (get-in prj [:entities ::ucore/scopes])))))
 
@@ -316,12 +337,11 @@
 
 (defn- build-flows-in-scope
   "Builds all flows for the given scope."
-  [proj graph-cfg mod-combinators mods scope-name scope]
-  (->> (get-in proj [:entities ::ucore/flows])
+  [proj graph-cfg mod-combinators mods scope-name scope canonical-flows]
+  (->> canonical-flows
        (reduce
-         (fn [prj [flow-name flow]]
-            (->> flow
-                 (uprj/canonical-flow)
+         (fn [prj [flow-name canonical-flow]]
+            (->> canonical-flow
                  (build-flow-in-scope prj graph-cfg mod-combinators mods scope-name scope flow-name)
                  (uprj/set-env prj (k/build-flow-in-scope-keypath scope-name flow-name))))
          proj)))
@@ -330,14 +350,16 @@
   (s/map-of keyword? map?))
 
 (s/fdef build-flows-in-scope
-        :args (s/cat :prj        ::uprj/project
-                     :graph-cfg  (s/keys :req-un [::mod-combinator-cfgs])
-                     :mcs        (s/map-of keyword? #(satisfies? uprj/ModCombinator %))
-                     :mods       (s/map-of keyword?
-                                           (s/map-of keyword?
-                                                     ::ucore/module))
-                     :scope-name keyword?
-                     :scope      #(satisfies? scopes/Scope %))
+        :args (s/cat :prj             ::uprj/project
+                     :graph-cfg       (s/keys :req-un [::mod-combinator-cfgs])
+                     :mcs             (s/map-of keyword? #(satisfies? uprj/ModCombinator %))
+                     :mods            (s/map-of
+                                       keyword?
+                                       (s/map-of keyword?
+                                                 ::ucore/module))
+                     :scope-name      keyword?
+                     :scope           #(satisfies? scopes/Scope %)
+                     :canonical-flows (s/map-of keyword? map?))
         :ret  ::uprj/project)
 
 (defn- get-mod-combinators
@@ -392,11 +414,11 @@
 
 (defn- build-scope
   "Builds a scope"
-  [prj mod-combinators mod-combinator-cfgs mods scope-name scope]
+  [prj mod-combinators mod-combinator-cfgs mods scope-name scope canonical-flows]
   (->
     (futil/mlet e/context
                 [graph-cfg {:mod-combinator-cfgs mod-combinator-cfgs}
-                 built-prj (build-flows-in-scope prj graph-cfg mod-combinators mods scope-name scope)]
+                 built-prj (build-flows-in-scope prj graph-cfg mod-combinators mods scope-name scope canonical-flows)]
                 (uprj/set-env
                   built-prj
                   (k/scope-deps-keypath scope-name)

@@ -270,13 +270,21 @@
                                                server-transformers)
                    all-transformers           (->> (concat client-transformers server-transformers)
                                                    (apply merge)
-                                                   (invs-in-ns inv-name))]
-               (if (empty? all-transformers)
-                 (assoc-in acc [:invs inv-name] inv)
-                 (merge-with
-                  merge
-                  {:extra-mods-by-scope {server-scope-name server-mods
-                                         client-scope-name client-mods}
-                   :invs                all-transformers}))))
+                                                   (invs-in-ns inv-name))
+                   new-invs                   (if (empty? all-transformers)
+                                                  (list inv)
+                                                  (vals all-transformers))
+                   extra-mods-by-scope        (->> (merge
+                                                    {server-scope-name server-mods}
+                                                    {client-scope-name client-mods})
+                                                   (filter #(some? (key %)))
+                                                   (into {}))]
+               (-> acc
+                   (update
+                    :extra-mods-by-scope
+                    #(merge-with merge % extra-mods-by-scope))
+                   (update-in
+                    [:canonical-flow :invocations]
+                    #(concat % new-invs)))))
            {:extra-mods-by-scope {}
-            :invs                {}}))))
+            :canonical-flow      (assoc canonical-flow :invocations [])}))))

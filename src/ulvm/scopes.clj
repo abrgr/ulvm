@@ -29,11 +29,13 @@
     "Resolves name-parts into a valid name in this scope.")
   (-write-flow [scope prj flow-name flow-args flow-ent flow-ast]
     "Writes this scope's portion of flow.")
+  (-get-name [scope]
+    "Retrieves the name of the scope.")
   (-get-config [scope]
     "Retrieves the config for the scope."))
 
 (defn- scope-with-renv
-  [renv cfg]
+  [renv scope-name cfg]
   ; TODO: we should only use these with-fallbacks if we can't find
   ;       the ideal flow.  We don't want to swallow actual errors.
   (reify Scope
@@ -88,6 +90,8 @@
          :flow-args flow-args
          :flow-ent  flow-ent
          :flow-ast  flow-ast}))
+    (-get-name [scope]
+      scope-name)
     (-get-config [scope]
       cfg)))
 
@@ -114,6 +118,10 @@
 (defn write-flow
   [scope prj flow-name flow-args flow-ent flow-ast]
   (-write-flow scope prj flow-name flow-args flow-ent flow-ast))
+
+(defn get-name
+  [scope]
+  (-get-name scope))
 
 (defn get-config
   [scope]
@@ -163,5 +171,5 @@
         (fn [renv]
           (let [prj (renv/launch p renv [k])]
             {:prj   prj
-             :scope (e/right (scope-with-renv renv (get-cfg prj renv cfg)))}))
+             :scope (e/right (scope-with-renv renv scope-name (get-cfg prj renv cfg)))}))
         renv-either))))
