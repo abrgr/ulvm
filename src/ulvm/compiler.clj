@@ -65,11 +65,27 @@
 
 (defn- expand-transformers
   [prj mods scopes]
-  (let [named-scope-cfgs (reduce
-                           (fn [named-scope-cfgs scope]
-                             [(scopes/get-name scope) (scopes/get-config scope)])
-                           scopes)]
-    (->> (get-in prj [:entities ::ucore/flows])
+  (let [named-scope-cfgs (->> scopes
+                              (reduce
+                               (fn [named-scope-cfgs [scope-name scope]]
+                                 (assoc named-scope-cfgs scope-name (scopes/get-config scope)))
+                               {}))
+        scope-inits      (->> scopes
+                              (reduce
+                               (fn [flow-by-name [scope-name _]]
+                                 (let [scope (uprj/get-prj-ent prj ::ucore/scopes scope-name)
+                                       init  (get scope ::ucore/init)
+                                       f     (->> init
+                                                  (flows/invs-in-scope scope-name)
+                                                  (concat [{::home-scope scope-name}])
+                                                  (into []))
+                                       n     (keyword (str "*init-" (name scope-name) "*"))]
+                                   (if (some? init)
+                                       (assoc flow-by-name n f)
+                                       flow-by-name)))
+                               {}))]
+    (->> (uprj/get-prj-ent prj ::ucore/flows)
+         (merge scope-inits) ; TODO: check uniqueness
          (reduce
           (fn [acc [flow-name flow]]
             (let [canonical-flow (uprj/canonical-flow flow)
@@ -168,13 +184,17 @@
 
 (defn- get-sub-result-names
   [prj scope-name scope enhanced-invs inverse-deps inv-name inv]
-  (->> (get-sub-results enhanced-invs inverse-deps inv-name)
-       (u/map-to-vals
-         (partial
-           resolve-name
-           prj
-           scope
-           (u/get-in inv [:inv :name :name])))))
+  (let [result-name (or (u/get-in inv [:inv :name :name])
+                        (some-> (u/get-in inv [:mod-name])
+                                (str "-")
+                                gensym))]
+    (->> (get-sub-results enhanced-invs inverse-deps inv-name)
+         (u/map-to-vals
+           (partial
+             resolve-name
+             prj
+             scope
+             result-name)))))
 
 (defn- add-result-names
   "Get the usages for the result of each inv, get the names for
@@ -303,7 +323,8 @@
                                   scope-name
                                   scope
                                   inverse-deps)
-                                (add-arg-names flow-params-set))]
+                                (add-arg-names flow-params-set))
+        resolved-flow-name   (resolve-name prj scope flow-name)]
     (m/->>= (flows/ordered-invocations relevant-invs deps flow-params)
             (b/build-call-graph
               prj
@@ -318,7 +339,7 @@
             (scopes/write-flow
               scope
               prj
-              flow-name
+              resolved-flow-name
               flow-params
               (uprj/get-prj-ent prj ::ucore/flow flow-name)))))
 

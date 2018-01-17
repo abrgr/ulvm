@@ -123,15 +123,15 @@
                                              :ulvm.arg-mappings/positional [[:token]]}}
                        :create-token      {:ulvm.core/mod-combinator-name :js-sync
                                            :ulvm.core/mod-descriptor {:local-filename "todo-svc/create-token"}}}
-   :init [(express          {} :as app)
-          (json-body-parser {} :as json-middleware) ; TODO: would be nice not to name *everything*
-          (mount-middleware {:app app, :middleware json-middleware})
-          ; TODO: move routes to their flow initializers
-          (env              {:var "PORT"} :as port) ; TODO: there is a nicer way to handle this
-          (listen           {:app app, :port port})]})
+   :ulvm.core/init [(express          {} :as app)
+                    (json-body-parser {} :as json-middleware) ; TODO: would be nice not to name *everything*
+                    (mount-middleware {:app app, :middleware json-middleware})
+                    ; TODO: move routes to their flow initializers
+                    (env              {:var "PORT"} :as port) ; TODO: there is a nicer way to handle this
+                    (listen           {:app app, :port port})]})
 
 (ulvm.core/defflow :create-session [session username password]
-  {:ulvm.core/home-scope        todo-svc
+  {:ulvm.core/home-scope        :todo-svc
    :ulvm.core/output-descriptor {:auth-err [(:err authorized-login)]
                                  :err      [(:err valid-login) (:err stored-session)]
                                  :success  [session-response]}
@@ -219,7 +219,7 @@
                                                                      :after [stored-session]))
 
 (ulvm.core/defflow :create-todo [req]
-  {:ulvm.core/home-scope        todo-svc
+  {:ulvm.core/home-scope        :todo-svc
    :ulvm.core/output-descriptor {:auth-err [(:err valid-auth)]
                                  :bad-req  [(:err valid-todo)]
                                  :err      []

@@ -226,65 +226,82 @@
             (transformer-mods mod-name)))
          (into {}))))
 
+(defn invs-in-scope
+  "Place invs in the provided scope"
+  [scope-name invs]
+  (map
+   (fn [[mod-ref & rest-of-inv]]
+     (if (symbol? mod-ref)
+         (concat [(list (-> mod-ref name keyword) (-> scope-name name symbol))] rest-of-inv)
+         (concat [mod-ref] rest-of-inv))) ; TODO: can check that mod-ref refers to scope
+   invs))
+
+(s/fdef invs-in-scope
+        :args (s/cat :scope-name keyword?
+                     :invs       (s/nilable (s/coll-of ::ucore/flow-invocation)))
+        :ret (s/coll-of ::ucore/flow-invocation))
+
 (defn expand-transformers
   "Inlines applicable transformers for any module invocations in the flow."
-  [prj mods named-scope-cfgs canonical-flow]
-  (let [client-scope-name (home-scope canonical-flow)
-        client-scope-cfg  (get named-scope-cfgs client-scope-name)]
-    (->> canonical-flow
-         :invocations
-         named-invocations
-         (reduce
-           (fn [acc [inv-name inv]]
-             (let [{mod               :mod
-                    server-scope-name :scope} (module-for-invocation mods nil inv)
-                   server-scope-cfg           (get named-scope-cfgs server-scope-name)
-                   param-bindings             (->> (u/get-in inv [:args])
-                                                   (map
-                                                    (fn [[k arg]]
-                                                      [k (s/unform ::ucore/flow-arg arg)]))
-                                                   (into {}))
-                   transformer-bindings       {'*client-scope*     client-scope-name
-                                               '*client-scope-cfg* client-scope-cfg
-                                               '*server-scope*     server-scope-name
-                                               '*server-scope-cfg* server-scope-cfg
-                                               '*inv*              (u/get-in inv [:invocation-module])}
-                   ; TODO: only allow some bindings in some phases
-                   transformers               (->> (get mod ::ucore/transformers)
-                                                   (relevant-transformers prj (merge transformer-bindings param-bindings)))
-                   client-transformers        (transformers-for-rel-scope
-                                               transformers
-                                               :client
-                                               client-scope-name
-                                               server-scope-name)
-                   server-transformers        (transformers-for-rel-scope
-                                               transformers
-                                               :server
-                                               client-scope-name
-                                               server-scope-name)
-                   client-mods                (get-transformer-mods
-                                               mod
-                                               client-transformers)
-                   server-mods                (get-transformer-mods
-                                               mod
-                                               server-transformers)
-                   all-transformers           (->> (concat client-transformers server-transformers)
-                                                   (apply merge)
-                                                   (invs-in-ns inv-name))
-                   new-invs                   (if (empty? all-transformers)
-                                                  (list inv)
-                                                  (vals all-transformers))
-                   extra-mods-by-scope        (->> (merge
-                                                    {server-scope-name server-mods}
-                                                    {client-scope-name client-mods})
-                                                   (filter #(some? (key %)))
-                                                   (into {}))]
-               (-> acc
-                   (update
-                    :extra-mods-by-scope
-                    #(merge-with merge % extra-mods-by-scope))
-                   (update-in
-                    [:canonical-flow :invocations]
-                    #(concat % new-invs)))))
-           {:extra-mods-by-scope {}
-            :canonical-flow      (assoc canonical-flow :invocations [])}))))
+  ([prj mods named-scope-cfgs canonical-flow]
+    (expand-transformers prj mods named-scope-cfgs nil canonical-flow))
+  ([prj mods named-scope-cfgs scope canonical-flow]
+    (let [client-scope-name (home-scope canonical-flow)
+          client-scope-cfg  (get named-scope-cfgs client-scope-name)]
+      (->> canonical-flow
+           :invocations
+           named-invocations
+           (reduce
+             (fn [acc [inv-name inv]]
+               (let [{mod               :mod
+                      server-scope-name :scope} (module-for-invocation mods scope inv) ; TODO: if scope is not nil and server-scope-name != scope, we have a problem (this is the case for scope initializers)
+                     server-scope-cfg           (get named-scope-cfgs server-scope-name)
+                     param-bindings             (->> (u/get-in inv [:args])
+                                                     (map
+                                                      (fn [[k arg]]
+                                                        [k (s/unform ::ucore/flow-arg arg)]))
+                                                     (into {}))
+                     transformer-bindings       {'*client-scope*     client-scope-name
+                                                 '*client-scope-cfg* client-scope-cfg
+                                                 '*server-scope*     server-scope-name
+                                                 '*server-scope-cfg* server-scope-cfg
+                                                 '*inv*              (u/get-in inv [:invocation-module])}
+                     ; TODO: only allow some bindings in some phases
+                     transformers               (->> (get mod ::ucore/transformers)
+                                                     (relevant-transformers prj (merge transformer-bindings param-bindings)))
+                     client-transformers        (transformers-for-rel-scope
+                                                 transformers
+                                                 :client
+                                                 client-scope-name
+                                                 server-scope-name)
+                     server-transformers        (transformers-for-rel-scope
+                                                 transformers
+                                                 :server
+                                                 client-scope-name
+                                                 server-scope-name)
+                     client-mods                (get-transformer-mods
+                                                 mod
+                                                 client-transformers)
+                     server-mods                (get-transformer-mods
+                                                 mod
+                                                 server-transformers)
+                     all-transformers           (->> (concat client-transformers server-transformers)
+                                                     (apply merge)
+                                                     (invs-in-ns inv-name))
+                     new-invs                   (if (empty? all-transformers)
+                                                    (list inv)
+                                                    (vals all-transformers))
+                     extra-mods-by-scope        (->> (merge
+                                                      {server-scope-name server-mods}
+                                                      {client-scope-name client-mods})
+                                                     (filter #(some? (key %)))
+                                                     (into {}))]
+                 (-> acc
+                     (update
+                      :extra-mods-by-scope
+                      #(merge-with merge % extra-mods-by-scope))
+                     (update-in
+                      [:canonical-flow :invocations]
+                      #(concat % new-invs)))))
+             {:extra-mods-by-scope {}
+              :canonical-flow      (assoc canonical-flow :invocations [])})))))
